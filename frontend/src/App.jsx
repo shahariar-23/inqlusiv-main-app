@@ -1,23 +1,30 @@
-import { useState } from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Login from './components/Login';
+
+// Placeholder components for redirection targets
+const SetupWizard = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <h1 className="text-3xl font-bold text-blue-600">Setup Wizard</h1>
+  </div>
+);
+
+const Dashboard = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <h1 className="text-3xl font-bold text-green-600">Dashboard</h1>
+  </div>
+);
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center">
-      <h1 className="text-4xl font-bold text-blue-600 mb-4">Inqlusiv Main App</h1>
-      <p className="text-lg text-gray-700 mb-6">Frontend setup with React + Tailwind CSS</p>
-      
-      <div className="p-6 bg-white rounded-xl shadow-md flex items-center space-x-4">
-        <button 
-          onClick={() => setCount((count) => count + 1)}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
-        >
-          Count is {count}
-        </button>
-      </div>
-    </div>
-  )
+    <Router>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/setup" element={<SetupWizard />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </Router>
+  );
 }
 
-export default App
+export default App;
