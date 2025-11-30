@@ -14,11 +14,11 @@ export default {
           600: '#475569',
         },
         brand: {
-          teal: '#14b8a6',
-          purple: '#a855f7',
+          teal: '#06B6D4',
+          purple: '#7C3AED',
         },
         accent: {
-          mint: '#6ee7b7',
+          mint: '#5EF2C1',
           sky: '#7dd3fc',
         }
       },

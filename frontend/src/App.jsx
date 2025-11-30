@@ -1,13 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login/Login';
 import SetupWizard from './pages/SetupWizard/SetupWizard';
-
-// Placeholder components for redirection targets
-const Dashboard = () => (
-  <div className="min-h-screen flex items-center justify-center bg-gray-100">
-    <h1 className="text-3xl font-bold text-green-600">Dashboard</h1>
-  </div>
-);
+import DashboardLayout from './layouts/DashboardLayout';
+import DashboardHome from './pages/Dashboard/DashboardHome';
 
 function App() {
   return (
@@ -15,7 +10,18 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/setup" element={<SetupWizard />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        
+        {/* Dashboard Route with Layout */}
+        <Route 
+          path="/dashboard" 
+          element={
+            <DashboardLayout>
+              <DashboardHome />
+            </DashboardLayout>
+          } 
+        />
+        
+        {/* Redirect root to login */}
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
