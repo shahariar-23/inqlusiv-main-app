@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Step1Company, Step2Admin, Step3Departments, Step4Employees, Step5Preferences } from './StepComponents';
 
@@ -99,10 +100,20 @@ const SetupWizard = () => {
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setIsSubmitting(false);
-    navigate('/dashboard');
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post('http://localhost:8080/api/company/setup', formData, {
+        headers: {
+          'Authorization': token
+        }
+      });
+      navigate('/dashboard');
+    } catch (error) {
+      console.error("Setup failed", error);
+      alert("Failed to save setup. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const renderStep = () => {

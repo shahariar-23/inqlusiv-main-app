@@ -34,12 +34,7 @@ public class AuthController {
             
             if (passwordEncoder.matches(loginRequest.getPassword(), company.getPassword())) {
                 
-                String setupStatus = "INCOMPLETE";
-                if (company.getEmployeeCount() != null && !company.getEmployeeCount().isEmpty() &&
-                    company.getRegion() != null && !company.getRegion().isEmpty() &&
-                    company.getObjectives() != null && !company.getObjectives().isEmpty()) {
-                    setupStatus = "COMPLETE";
-                }
+                String setupStatus = company.getSetupStatus() != null ? company.getSetupStatus().name() : "INCOMPLETE";
 
                 // Mock token
                 String token = "mock-jwt-token-" + company.getId();

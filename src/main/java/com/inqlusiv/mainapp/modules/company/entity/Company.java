@@ -1,44 +1,60 @@
 package com.inqlusiv.mainapp.modules.company.entity;
 
+import com.inqlusiv.mainapp.modules.employee.entity.Employee;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import java.time.LocalDateTime;
+import lombok.NoArgsConstructor;
 
-@Data
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "companies")
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Company {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "companyName", nullable = false)
-    private String companyName;
+    @Column(nullable = false)
+    private String name;
 
-    @Column(name = "contactName", nullable = false)
-    private String contactName;
-
-    @Column(nullable = false, unique = true)
+    @Column(unique = true)
     private String email;
 
-    @Column(name = "password")
     private String password;
 
-    @Column(name = "employeeCount")
-    private String employeeCount;
+    private String industry;
 
-    @Column(name = "region")
     private String region;
 
-    @Column(columnDefinition = "TEXT")
-    private String objectives;
+    @Column(name = "logo_url")
+    private String logoUrl;
 
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "setup_status")
+    private SetupStatus setupStatus;
 
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-    }
+    @Column(name = "created_at")
+    @Builder.Default
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "settings_id", referencedColumnName = "id")
+    private CompanySettings settings;
+
+    @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<Department> departments = new ArrayList<>();
+
+    @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<Employee> employees = new ArrayList<>();
 }
