@@ -102,9 +102,39 @@ const SetupWizard = () => {
     setIsSubmitting(true);
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:8080/api/company/setup', formData, {
+      
+      const data = new FormData();
+      data.append('companyName', formData.companyName);
+      data.append('industry', formData.industry);
+      data.append('region', formData.region);
+      data.append('adminName', formData.adminName);
+      data.append('adminTitle', formData.adminTitle);
+      data.append('adminEmail', formData.adminEmail);
+      
+      // Append Departments
+      formData.departments.forEach(dept => {
+        data.append('departments', dept);
+      });
+      
+      // Append Preferences
+      data.append('notifications', formData.preferences.notifications);
+      data.append('analytics', formData.preferences.analytics);
+      data.append('autoInvite', formData.preferences.autoInvite);
+      
+      // Append Selected Metrics
+      formData.selectedMetrics.forEach(metric => {
+        data.append('selectedMetrics', metric);
+      });
+      
+      // Append File
+      if (formData.employeeFile) {
+        data.append('employeeFile', formData.employeeFile);
+      }
+
+      await axios.post('http://localhost:8080/api/company/setup', data, {
         headers: {
-          'Authorization': token
+          'Authorization': token,
+          'Content-Type': 'multipart/form-data'
         }
       });
       navigate('/dashboard');

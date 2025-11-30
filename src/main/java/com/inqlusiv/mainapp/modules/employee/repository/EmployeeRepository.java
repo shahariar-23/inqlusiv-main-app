@@ -11,6 +11,8 @@ import java.util.List;
 @Repository
 public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     long countByCompanyId(Long companyId);
+    
+    boolean existsByEmail(String email);
 
     @Query("SELECT e.gender, COUNT(e) FROM Employee e WHERE e.company.id = :companyId GROUP BY e.gender")
     List<Object[]> countEmployeesByGender(@Param("companyId") Long companyId);

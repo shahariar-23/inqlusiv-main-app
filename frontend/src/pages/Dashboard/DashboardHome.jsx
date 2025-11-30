@@ -164,7 +164,7 @@ const DashboardHome = () => {
             </button>
           </div>
           
-          <div className="flex-1 min-h-[300px]">
+          <div className="flex-1 h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -205,7 +205,7 @@ const DashboardHome = () => {
             </div>
           </div>
 
-          <div className="flex-1 min-h-[300px]">
+          <div className="flex-1 h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={DEPARTMENT_DATA} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />

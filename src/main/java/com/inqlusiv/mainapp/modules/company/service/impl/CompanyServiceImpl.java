@@ -8,6 +8,7 @@ import com.inqlusiv.mainapp.modules.company.entity.SetupStatus;
 import com.inqlusiv.mainapp.modules.company.repository.CompanyRepository;
 import com.inqlusiv.mainapp.modules.company.service.CompanyService;
 import com.inqlusiv.mainapp.modules.employee.entity.Employee;
+import com.inqlusiv.mainapp.modules.employee.repository.EmployeeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,9 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Autowired
     private CompanyRepository companyRepository;
+    
+    @Autowired
+    private EmployeeRepository employeeRepository;
 
     @Override
     @Transactional
@@ -56,20 +60,37 @@ public class CompanyServiceImpl implements CompanyService {
         }
 
         // Create Admin as Employee
-        // Simple name split logic
-        String[] names = request.getAdminName().split(" ", 2);
-        String firstName = names[0];
-        String lastName = names.length > 1 ? names[1] : "";
+        // Check if admin already exists globally (since email is unique)
+        boolean adminExists = employeeRepository.existsByEmail(request.getAdminEmail());
 
-        Employee admin = Employee.builder()
-                .firstName(firstName)
-                .lastName(lastName)
-                .email(request.getAdminEmail())
-                .jobTitle(request.getAdminTitle())
-                .company(company)
-                .build();
-        
-        company.getEmployees().add(admin);
+        if (!adminExists) {
+            // Simple name split logic
+            String[] names = request.getAdminName().split(" ", 2);
+            String firstName = names[0];
+            String lastName = names.length > 1 ? names[1] : "";
+
+            Employee admin = Employee.builder()
+                    .firstName(firstName)
+                    .lastName(lastName)
+                    .email(request.getAdminEmail())
+                    .jobTitle(request.getAdminTitle())
+                    .company(company)
+                    .build();
+            
+            company.getEmployees().add(admin);
+        } else {
+            // If admin exists but belongs to this company, update details
+            // If belongs to another company, we might have a conflict, but for now let's just update if it's ours
+            company.getEmployees().stream()
+                .filter(e -> e.getEmail().equalsIgnoreCase(request.getAdminEmail()))
+                .findFirst()
+                .ifPresent(admin -> {
+                    String[] names = request.getAdminName().split(" ", 2);
+                    admin.setFirstName(names[0]);
+                    admin.setLastName(names.length > 1 ? names[1] : "");
+                    admin.setJobTitle(request.getAdminTitle());
+                });
+        }
 
         companyRepository.save(company);
     }

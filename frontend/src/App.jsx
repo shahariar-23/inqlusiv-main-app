@@ -21,6 +21,16 @@ function App() {
           } 
         />
         
+        {/* Placeholder for Employees Route */}
+        <Route 
+          path="/dashboard/employees" 
+          element={
+            <DashboardLayout>
+              <div className="text-white p-8">Employees Page (Coming Soon)</div>
+            </DashboardLayout>
+          } 
+        />
+        
         {/* Redirect root to login */}
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
