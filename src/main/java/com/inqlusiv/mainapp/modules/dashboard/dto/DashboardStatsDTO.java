@@ -17,5 +17,7 @@ public class DashboardStatsDTO {
     private long totalDepartments;
     private Map<String, Long> genderDistribution;
     private Map<String, Long> departmentHeadcount;
+    private long openRoles;
+    private String retentionRate;
     private List<String> recentActivities;
 }

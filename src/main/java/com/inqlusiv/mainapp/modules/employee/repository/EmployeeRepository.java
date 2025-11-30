@@ -1,6 +1,8 @@
 package com.inqlusiv.mainapp.modules.employee.repository;
 
 import com.inqlusiv.mainapp.modules.employee.entity.Employee;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,6 +15,16 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     long countByCompanyId(Long companyId);
     
     boolean existsByEmail(String email);
+
+    Page<Employee> findByCompanyId(Long companyId, Pageable pageable);
+
+    Page<Employee> findByCompanyIdAndDepartmentId(Long companyId, Long departmentId, Pageable pageable);
+
+    @Query("SELECT e FROM Employee e WHERE e.company.id = :companyId AND (LOWER(e.firstName) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(e.lastName) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(e.email) LIKE LOWER(CONCAT('%', :search, '%')))")
+    Page<Employee> searchByCompanyId(@Param("companyId") Long companyId, @Param("search") String search, Pageable pageable);
+
+    @Query("SELECT e FROM Employee e LEFT JOIN e.department d WHERE e.company.id = :companyId AND (LOWER(e.firstName) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(e.lastName) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(e.email) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(d.name) LIKE LOWER(CONCAT('%', :search, '%')))")
+    Page<Employee> searchByCompanyIdGlobal(@Param("companyId") Long companyId, @Param("search") String search, Pageable pageable);
 
     @Query("SELECT e.gender, COUNT(e) FROM Employee e WHERE e.company.id = :companyId GROUP BY e.gender")
     List<Object[]> countEmployeesByGender(@Param("companyId") Long companyId);

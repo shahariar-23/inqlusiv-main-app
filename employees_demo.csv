@@ -1,0 +1,21 @@
+FirstName,LastName,Email,JobTitle,Department,Gender,StartDate,Location
+James,Smith,james.smith@example.com,Software Engineer,Engineering,Male,2023-01-15,New York
+Maria,Garcia,maria.garcia@example.com,Product Manager,Product,Female,2022-11-01,San Francisco
+Robert,Johnson,robert.johnson@example.com,DevOps Engineer,Engineering,Male,2023-03-10,Remote
+Linda,Martinez,linda.martinez@example.com,HR Specialist,Human Resources,Female,2021-06-20,Chicago
+Michael,Brown,michael.brown@example.com,Sales Representative,Sales,Male,2023-05-05,Austin
+Elizabeth,Davis,elizabeth.davis@example.com,Marketing Manager,Marketing,Female,2022-09-12,New York
+William,Rodriguez,william.rodriguez@example.com,Data Scientist,Data,Male,2023-02-28,Boston
+Jennifer,Wilson,jennifer.wilson@example.com,UX Designer,Design,Female,2022-08-15,San Francisco
+David,Anderson,david.anderson@example.com,Backend Developer,Engineering,Male,2023-04-01,Remote
+Susan,Thomas,susan.thomas@example.com,Accountant,Finance,Female,2021-12-01,Chicago
+Joseph,Taylor,joseph.taylor@example.com,Customer Support Lead,Support,Male,2022-05-20,Austin
+Margaret,Moore,margaret.moore@example.com,Content Strategist,Marketing,Female,2023-06-10,New York
+Charles,Jackson,charles.jackson@example.com,QA Engineer,Engineering,Male,2023-01-20,Remote
+Sarah,Martin,sarah.martin@example.com,Recruiter,Human Resources,Female,2022-03-15,Chicago
+Thomas,Lee,thomas.lee@example.com,Sales Manager,Sales,Male,2021-10-05,Austin
+Patricia,Perez,patricia.perez@example.com,Graphic Designer,Design,Female,2023-07-01,San Francisco
+Christopher,Thompson,christopher.thompson@example.com,Systems Administrator,IT,Male,2022-02-10,Boston
+Jessica,White,jessica.white@example.com,Business Analyst,Product,Female,2023-05-15,New York
+Daniel,Harris,daniel.harris@example.com,Frontend Developer,Engineering,Male,2023-03-01,Remote
+Nancy,Clark,nancy.clark@example.com,Office Manager,Administration,Female,2021-08-20,Chicago

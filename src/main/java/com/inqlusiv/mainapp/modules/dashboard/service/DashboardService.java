@@ -19,7 +19,7 @@ public class DashboardService {
     @Autowired
     private DepartmentRepository departmentRepository;
 
-    public DashboardStatsDTO getDashboardStats(Long companyId) {
+    public DashboardStatsDTO getStats(Long companyId) {
         long totalEmployees = employeeRepository.countByCompanyId(companyId);
         long totalDepartments = departmentRepository.countByCompanyId(companyId);
 
@@ -56,6 +56,8 @@ public class DashboardService {
                 .totalDepartments(totalDepartments)
                 .genderDistribution(genderDistribution)
                 .departmentHeadcount(departmentHeadcount)
+                .openRoles(0L) // Placeholder: No Job Openings module yet
+                .retentionRate("100%") // Placeholder: No historical data yet
                 .recentActivities(recentActivities)
                 .build();
     }

@@ -1,0 +1,16 @@
+package com.inqlusiv.mainapp.modules.company.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class DepartmentDTO {
+    private Long id;
+    private String name;
+    private Long headcount;
+}

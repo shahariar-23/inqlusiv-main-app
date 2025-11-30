@@ -98,15 +98,7 @@ public class CompanyController {
             String tokenIdPart = cleanToken.replace("mock-jwt-token-", "");
             Long companyId = Long.parseLong(tokenIdPart);
 
-            Company company = companyRepository.findById(companyId)
-                    .orElseThrow(() -> new RuntimeException("Company not found"));
-
-            company.setSetupStatus(com.inqlusiv.mainapp.modules.company.entity.SetupStatus.INCOMPLETE);
-            // Clear existing data for a fresh start
-            company.getEmployees().clear();
-            company.getDepartments().clear();
-            
-            companyRepository.save(company);
+            companyService.resetCompany(companyId);
 
             return ResponseEntity.ok("Company setup reset to INCOMPLETE");
         } catch (Exception e) {

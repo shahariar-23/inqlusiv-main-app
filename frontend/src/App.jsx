@@ -3,6 +3,8 @@ import Login from './pages/Login/Login';
 import SetupWizard from './pages/SetupWizard/SetupWizard';
 import DashboardLayout from './layouts/DashboardLayout';
 import DashboardHome from './pages/Dashboard/DashboardHome';
+import Employees from './pages/Dashboard/Employees';
+import Departments from './pages/Dashboard/Departments';
 
 function App() {
   return (
@@ -21,12 +23,38 @@ function App() {
           } 
         />
         
-        {/* Placeholder for Employees Route */}
         <Route 
           path="/dashboard/employees" 
           element={
             <DashboardLayout>
-              <div className="text-white p-8">Employees Page (Coming Soon)</div>
+              <Employees />
+            </DashboardLayout>
+          } 
+        />
+
+        <Route 
+          path="/dashboard/departments" 
+          element={
+            <DashboardLayout>
+              <Departments />
+            </DashboardLayout>
+          } 
+        />
+
+        <Route 
+          path="/dashboard/analytics" 
+          element={
+            <DashboardLayout>
+              <div className="text-white p-8">Analytics Page (Coming Soon)</div>
+            </DashboardLayout>
+          } 
+        />
+
+        <Route 
+          path="/dashboard/settings" 
+          element={
+            <DashboardLayout>
+              <div className="text-white p-8">Settings Page (Coming Soon)</div>
             </DashboardLayout>
           } 
         />

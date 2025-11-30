@@ -35,6 +35,12 @@ public class Employee {
     @Column(name = "gender")
     private String gender;
 
+    @Column(name = "start_date")
+    private java.time.LocalDate startDate;
+
+    @Column(name = "location")
+    private String location;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id")
     private Company company;

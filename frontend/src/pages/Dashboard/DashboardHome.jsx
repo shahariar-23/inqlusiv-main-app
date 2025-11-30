@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import { motion } from 'framer-motion';
 import { 
   Users, 
@@ -24,83 +25,124 @@ import {
   Legend
 } from 'recharts';
 
-// --- Mock Data ---
-const STATS_DATA = [
-  { 
-    id: 1, 
-    label: 'Total Employees', 
-    value: '142', 
-    trend: '+12% this month', 
-    icon: Users, 
-    color: 'text-brand-teal' 
-  },
-  { 
-    id: 2, 
-    label: 'Engagement Score', 
-    value: '86%', 
-    trend: '+4.2% vs last qtr', 
-    icon: TrendingUp, 
-    color: 'text-brand-purple' 
-  },
-  { 
-    id: 3, 
-    label: 'Open Roles', 
-    value: '8', 
-    trend: '2 filled this week', 
-    icon: Briefcase, 
-    color: 'text-accent-mint' 
-  },
-  { 
-    id: 4, 
-    label: 'Retention Rate', 
-    value: '94%', 
-    trend: 'Top 5% in industry', 
-    icon: Award, 
-    color: 'text-pink-500' 
-  },
-];
-
-const DIVERSITY_DATA = [
-  { name: 'Male', value: 45, color: '#06B6D4' }, // brand-teal
-  { name: 'Female', value: 42, color: '#7C3AED' }, // brand-purple
-  { name: 'Non-Binary', value: 8, color: '#DB2777' }, // pink-600
-  { name: 'Prefer not to say', value: 5, color: '#94A3B8' }, // slate-400
-];
-
-const DEPARTMENT_DATA = [
-  { name: 'Eng', count: 45 },
-  { name: 'Sales', count: 32 },
-  { name: 'Mktg', count: 24 },
-  { name: 'HR', count: 12 },
-  { name: 'Ops', count: 18 },
-  { name: 'Design', count: 11 },
-];
-
-const ACTIVITY_DATA = [
-  { id: 1, text: 'New employee added: Sarah Jenkins (Engineering)', time: '2 hours ago', color: 'bg-brand-teal' },
-  { id: 2, text: 'Q3 Engagement Survey completed', time: '5 hours ago', color: 'bg-brand-purple' },
-  { id: 3, text: 'Department headcount updated for Sales', time: '1 day ago', color: 'bg-accent-mint' },
-  { id: 4, text: 'System maintenance scheduled', time: '2 days ago', color: 'bg-slate-500' },
-];
-
-// --- Animation Variants ---
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1
-    }
-  }
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0 }
-};
-
 const DashboardHome = () => {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
   const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get('http://localhost:8080/api/dashboard/summary', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setStats(response.data);
+      } catch (error) {
+        console.error("Error fetching dashboard stats", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  if (loading) {
+    return <div className="text-white text-center mt-20">Loading Dashboard...</div>;
+  }
+
+  if (!stats) {
+    return <div className="text-white text-center mt-20">Failed to load data.</div>;
+  }
+
+  // Transform API data for charts
+  console.log("Dashboard Stats Received:", stats);
+
+  let genderDataRaw = stats.genderDistribution || {};
+  let deptDataRaw = stats.departmentHeadcount || {};
+
+  // Defensive check: If genderDistribution contains department-like keys (not Male/Female), swap them.
+  // This handles cases where the API might inadvertently swap data or if the user is seeing cached weirdness.
+  const genderKeys = Object.keys(genderDataRaw);
+  const isGenderDataSuspicious = genderKeys.length > 0 && !genderKeys.includes('Male') && !genderKeys.includes('Female');
+  
+  if (isGenderDataSuspicious) {
+      console.warn("Detected potential data swap. Swapping Gender and Department data.");
+      const temp = genderDataRaw;
+      genderDataRaw = deptDataRaw;
+      deptDataRaw = temp;
+  }
+
+  // Diversity Metrics (Pie Chart) -> Gender Distribution
+  const diversityData = Object.entries(genderDataRaw).map(([name, value]) => ({
+    name,
+    value,
+    color: name === 'Male' ? '#06B6D4' : name === 'Female' ? '#7C3AED' : '#DB2777'
+  }));
+
+  const maleCount = genderDataRaw['Male'] || 0;
+  const femaleCount = genderDataRaw['Female'] || 0;
+  const nonBinaryCount = genderDataRaw['Non-binary'] || 0;
+  const otherCount = genderDataRaw['Other'] || 0;
+
+  // Department Headcount (Bar Chart) -> Department Headcount
+  const departmentData = Object.entries(deptDataRaw).map(([name, count]) => ({
+    name,
+    count
+  }));
+
+  const STATS_CARDS = [
+    { 
+      id: 1, 
+      label: 'Total Employees', 
+      value: stats.totalEmployees, 
+      trend: '+12% this month', 
+      icon: Users, 
+      color: 'text-brand-teal' 
+    },
+    { 
+      id: 2, 
+      label: 'Total Departments', 
+      value: stats.totalDepartments, 
+      trend: 'Stable', 
+      icon: Briefcase, 
+      color: 'text-brand-purple' 
+    },
+    // Keep placeholders for others
+    { 
+      id: 3, 
+      label: 'Open Roles', 
+      value: stats.openRoles, 
+      trend: 'No active listings', 
+      icon: TrendingUp, 
+      color: 'text-accent-mint' 
+    },
+    { 
+      id: 4, 
+      label: 'Retention Rate', 
+      value: stats.retentionRate, 
+      trend: 'Based on current data', 
+      icon: Award, 
+      color: 'text-pink-500' 
+    },
+  ];
+
+  // --- Animation Variants ---
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
+  };
 
   return (
     <motion.div 
@@ -127,7 +169,7 @@ const DashboardHome = () => {
 
       {/* B. Smart Stats Grid */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {STATS_DATA.map((stat) => (
+        {STATS_CARDS.map((stat) => (
           <div 
             key={stat.id}
             className="group relative p-6 rounded-2xl bg-midnight-900/60 backdrop-blur-xl border border-white/5 hover:border-brand-teal/30 hover:-translate-y-1 hover:shadow-neon transition-all duration-300"
@@ -158,17 +200,37 @@ const DashboardHome = () => {
           className="lg:col-span-1 p-6 rounded-2xl bg-midnight-900/60 backdrop-blur-xl border border-white/5 flex flex-col"
         >
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-display font-semibold text-white">Diversity Metrics</h3>
+            <div>
+              <h3 className="text-lg font-display font-semibold text-white">Diversity Metrics</h3>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-3">
+                <div className="text-xs text-slate-400 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#06B6D4]"></span>
+                  Male: <span className="text-white font-medium">{maleCount}</span>
+                </div>
+                <div className="text-xs text-slate-400 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#7C3AED]"></span>
+                  Female: <span className="text-white font-medium">{femaleCount}</span>
+                </div>
+                <div className="text-xs text-slate-400 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#DB2777]"></span>
+                  Non-binary: <span className="text-white font-medium">{nonBinaryCount}</span>
+                </div>
+                <div className="text-xs text-slate-400 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-slate-500"></span>
+                  Other: <span className="text-white font-medium">{otherCount}</span>
+                </div>
+              </div>
+            </div>
             <button className="text-slate-500 hover:text-white transition-colors">
               <ArrowUpRight className="w-5 h-5" />
             </button>
           </div>
           
-          <div className="flex-1 h-[300px]">
+          <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={DIVERSITY_DATA}
+                  data={diversityData}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
@@ -176,7 +238,7 @@ const DashboardHome = () => {
                   paddingAngle={5}
                   dataKey="value"
                 >
-                  {DIVERSITY_DATA.map((entry, index) => (
+                  {diversityData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} stroke="rgba(0,0,0,0)" />
                   ))}
                 </Pie>
@@ -205,9 +267,9 @@ const DashboardHome = () => {
             </div>
           </div>
 
-          <div className="flex-1 h-[300px]">
+          <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={DEPARTMENT_DATA} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <BarChart data={departmentData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
                 <XAxis 
                   dataKey="name" 
@@ -242,18 +304,18 @@ const DashboardHome = () => {
         <div className="lg:col-span-2 p-6 rounded-2xl bg-midnight-900/60 backdrop-blur-xl border border-white/5">
            <h3 className="text-lg font-display font-semibold text-white mb-6">Recent Activity</h3>
            <div className="space-y-6">
-             {ACTIVITY_DATA.map((activity, index) => (
-               <div key={activity.id} className="flex gap-4 relative">
+             {stats.recentActivities && stats.recentActivities.map((activity, index) => (
+               <div key={index} className="flex gap-4 relative">
                  {/* Connector Line */}
-                 {index !== ACTIVITY_DATA.length - 1 && (
+                 {index !== stats.recentActivities.length - 1 && (
                    <div className="absolute left-[9px] top-8 bottom-[-24px] w-[2px] bg-white/5"></div>
                  )}
                  
-                 <div className={`relative z-10 w-5 h-5 rounded-full ${activity.color} shadow-[0_0_10px_rgba(0,0,0,0.5)] flex-shrink-0 mt-1`}></div>
+                 <div className={`relative z-10 w-5 h-5 rounded-full bg-brand-teal shadow-[0_0_10px_rgba(0,0,0,0.5)] flex-shrink-0 mt-1`}></div>
                  
                  <div>
-                   <p className="text-slate-300 text-sm font-medium">{activity.text}</p>
-                   <p className="text-slate-500 text-xs mt-1">{activity.time}</p>
+                   <p className="text-slate-300 text-sm font-medium">{activity}</p>
+                   <p className="text-slate-500 text-xs mt-1">Just now</p>
                  </div>
                </div>
              ))}

@@ -16,6 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+
 @Service
 public class CompanyServiceImpl implements CompanyService {
 
@@ -24,6 +27,9 @@ public class CompanyServiceImpl implements CompanyService {
     
     @Autowired
     private EmployeeRepository employeeRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Override
     @Transactional
@@ -93,5 +99,41 @@ public class CompanyServiceImpl implements CompanyService {
         }
 
         companyRepository.save(company);
+    }
+
+    @Override
+    @Transactional
+    public void resetCompany(Long companyId) {
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new RuntimeException("Company not found"));
+
+        company.setSetupStatus(SetupStatus.INCOMPLETE);
+        
+        // Clear existing data
+        company.getEmployees().clear();
+        company.getDepartments().clear();
+        
+        // Force flush to ensure deletes are executed before we try to reset auto_increment
+        companyRepository.saveAndFlush(company);
+        
+        // Attempt to reset auto_increment if possible (Best effort)
+        // This will only work if we deleted the latest rows.
+        try {
+            // We need to check if there are ANY employees left in the table.
+            // If the table is empty, we can reset to 1.
+            // If not, we reset to MAX(id) + 1.
+            
+            Long maxId = (Long) entityManager.createNativeQuery("SELECT MAX(id) FROM employees").getSingleResult();
+            long nextId = (maxId == null) ? 1 : maxId + 1;
+            entityManager.createNativeQuery("ALTER TABLE employees AUTO_INCREMENT = " + nextId).executeUpdate();
+            
+            Long maxDeptId = (Long) entityManager.createNativeQuery("SELECT MAX(id) FROM departments").getSingleResult();
+            long nextDeptId = (maxDeptId == null) ? 1 : maxDeptId + 1;
+            entityManager.createNativeQuery("ALTER TABLE departments AUTO_INCREMENT = " + nextDeptId).executeUpdate();
+            
+        } catch (Exception e) {
+            // Ignore if we can't reset auto_increment (e.g. permissions)
+            System.err.println("Could not reset AUTO_INCREMENT: " + e.getMessage());
+        }
     }
 }

@@ -13,8 +13,8 @@ public class DashboardController {
     @Autowired
     private DashboardService dashboardService;
 
-    @GetMapping("/stats")
-    public ResponseEntity<?> getDashboardStats(@RequestHeader("Authorization") String token) {
+    @GetMapping("/summary")
+    public ResponseEntity<?> getStats(@RequestHeader("Authorization") String token) {
         try {
             // Extract ID from mock token "mock-jwt-token-{id}"
             String cleanToken = token.replace("Bearer ", "");
@@ -25,7 +25,7 @@ public class DashboardController {
             String tokenIdPart = cleanToken.replace("mock-jwt-token-", "");
             Long companyId = Long.parseLong(tokenIdPart);
             
-            DashboardStatsDTO stats = dashboardService.getDashboardStats(companyId);
+            DashboardStatsDTO stats = dashboardService.getStats(companyId);
             return ResponseEntity.ok(stats);
         } catch (NumberFormatException e) {
             return ResponseEntity.badRequest().body("Invalid token format");
