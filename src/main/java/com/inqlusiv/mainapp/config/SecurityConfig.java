@@ -24,7 +24,7 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults())
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**", "/api/company/**").permitAll()
+                .requestMatchers("/api/auth/**", "/api/company/**", "/api/dashboard/**").permitAll()
                 .anyRequest().authenticated()
             );
         return http.build();

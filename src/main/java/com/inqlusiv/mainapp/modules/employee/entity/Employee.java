@@ -32,6 +32,9 @@ public class Employee {
     @Column(name = "job_title")
     private String jobTitle;
 
+    @Column(name = "gender")
+    private String gender;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id")
     private Company company;
