@@ -84,13 +84,14 @@ public class SurveyController {
         }
     }
 
-    @PostMapping("/analyze")
-    public ResponseEntity<?> analyzeTextResponses(@RequestBody List<String> answers) {
+    @PostMapping("/{id}/analyze")
+    public ResponseEntity<?> analyzeSurvey(@PathVariable Long id) {
         try {
-            TextSummaryDTO summary = textAnalysisService.analyzeTextResponses(answers);
+            SurveyResultDTO results = surveyService.getSurveyResults(id);
+            TextSummaryDTO summary = textAnalysisService.analyzeSurveyResults(results);
             return ResponseEntity.ok(summary);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error analyzing text responses: " + e.getMessage());
+            return ResponseEntity.badRequest().body("Error analyzing survey: " + e.getMessage());
         }
     }
 

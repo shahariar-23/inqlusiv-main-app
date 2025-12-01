@@ -15,4 +15,5 @@ public class TextSummaryDTO {
     private String summary;
     private List<String> topThemes;
     private String sentimentLabel;
+    private String actionableSuggestion;
 }

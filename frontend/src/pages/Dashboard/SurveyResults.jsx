@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, Users, BarChart2, MessageSquare, Sparkles, Loader2 } from 'lucide-react';
+import { ArrowLeft, Users, BarChart2, MessageSquare, Sparkles, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -12,6 +12,47 @@ import {
   ResponsiveContainer,
   Cell
 } from 'recharts';
+
+const TextResponseList = ({ answers }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const INITIAL_COUNT = 3;
+
+  if (!answers || answers.length === 0) {
+    return <div className="text-slate-500 italic text-sm">No text responses yet.</div>;
+  }
+
+  const displayedAnswers = isExpanded ? answers : answers.slice(0, INITIAL_COUNT);
+  const hasHiddenAnswers = answers.length > INITIAL_COUNT;
+
+  return (
+    <div className="space-y-3">
+      {displayedAnswers.map((answer, i) => (
+        <div key={i} className="p-4 rounded-lg bg-white/5 border border-white/5 text-slate-300 text-sm">
+          "{answer}"
+        </div>
+      ))}
+      
+      {hasHiddenAnswers && (
+        <button 
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center gap-2 text-xs font-medium text-brand-purple hover:text-brand-purple/80 mt-2 transition-colors"
+        >
+          {isExpanded ? (
+            <>
+              <ChevronUp className="w-3 h-3" />
+              Show Less
+            </>
+          ) : (
+            <>
+              <ChevronDown className="w-3 h-3" />
+              Show {answers.length - INITIAL_COUNT} More Responses
+            </>
+          )}
+        </button>
+      )}
+    </div>
+  );
+};
 
 const SurveyResults = () => {
   const { id } = useParams();
@@ -39,29 +80,17 @@ const SurveyResults = () => {
     fetchResults();
   }, [id]);
 
-  const handleAnalyzeText = async () => {
-    if (!results) return;
-    
-    // Aggregate all text answers
-    const textAnswers = results.questions
-        .filter(q => q.type === 'OPEN_TEXT' && q.textAnswers && q.textAnswers.length > 0)
-        .flatMap(q => q.textAnswers);
-
-    if (textAnswers.length === 0) {
-        alert("No text responses found to analyze.");
-        return;
-    }
-
+  const handleAnalyzeSurvey = async () => {
     setAnalyzing(true);
     try {
         const token = localStorage.getItem('token');
-        const response = await axios.post('http://localhost:8080/api/surveys/analyze', textAnswers, {
+        const response = await axios.post(`http://localhost:8080/api/surveys/${id}/analyze`, {}, {
             headers: { Authorization: `Bearer ${token}` }
         });
         setAiSummary(response.data);
     } catch (error) {
-        console.error("Error analyzing text", error);
-        alert("Failed to generate AI summary.");
+        console.error("Error analyzing survey", error);
+        alert("Failed to generate AI report.");
     } finally {
         setAnalyzing(false);
     }
@@ -88,44 +117,52 @@ const SurveyResults = () => {
         </div>
         
         <button
-            onClick={handleAnalyzeText}
+            onClick={handleAnalyzeSurvey}
             disabled={analyzing}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-brand-purple to-indigo-600 text-white font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-purple text-white hover:bg-brand-purple/90 transition-colors font-medium shadow-lg shadow-brand-purple/20"
         >
             {analyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            {analyzing ? 'Analyzing...' : 'Analyze Text Responses'}
+            {analyzing ? 'Generating Report...' : 'Generate AI Report'}
         </button>
       </div>
 
       {/* AI Summary Section */}
       {aiSummary && (
-        <div className="p-6 rounded-2xl bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border border-indigo-500/30 backdrop-blur-xl relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-teal via-brand-purple to-brand-teal"></div>
-            <div className="flex items-start gap-4 relative z-10">
-                <div className="p-3 rounded-xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-300">
+        <div className="p-6 rounded-2xl bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border border-indigo-500/30 backdrop-blur-xl animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="flex items-start gap-4">
+                <div className="p-3 rounded-xl bg-indigo-500/20 text-indigo-400">
                     <Sparkles className="w-6 h-6" />
                 </div>
-                <div className="flex-1">
-                    <h3 className="text-lg font-display font-bold text-white mb-2">AI Executive Summary</h3>
-                    <p className="text-slate-200 leading-relaxed mb-4">
-                        {aiSummary.summary}
-                    </p>
-                    
-                    <div className="flex flex-wrap items-center gap-3">
-                        <div className={`px-3 py-1 rounded-full text-xs font-bold border ${
-                            aiSummary.sentimentLabel === 'Positive' ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400' :
-                            aiSummary.sentimentLabel === 'Negative' ? 'bg-rose-500/20 border-rose-500/30 text-rose-400' :
-                            'bg-slate-500/20 border-slate-500/30 text-slate-400'
-                        }`}>
-                            Sentiment: {aiSummary.sentimentLabel}
+                <div className="space-y-4 flex-1">
+                    <div>
+                        <h3 className="text-lg font-bold text-white mb-1">AI Executive Summary</h3>
+                        <div className="flex flex-wrap gap-2 mb-3">
+                             <span className={`px-2 py-0.5 rounded text-xs font-bold border ${
+                                aiSummary.sentimentLabel === 'Positive' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
+                                aiSummary.sentimentLabel === 'Negative' ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' :
+                                'bg-slate-500/10 border-slate-500/20 text-slate-400'
+                            }`}>
+                                {aiSummary.sentimentLabel} Sentiment
+                            </span>
+                            {aiSummary.topThemes.map((theme, i) => (
+                                <span key={i} className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-xs text-slate-300">
+                                    #{theme}
+                                </span>
+                            ))}
                         </div>
-                        
-                        {aiSummary.topThemes.map((theme, i) => (
-                            <div key={i} className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300">
-                                #{theme}
-                            </div>
-                        ))}
+                        <p className="text-slate-300 leading-relaxed whitespace-pre-line">
+                            {aiSummary.summary}
+                        </p>
                     </div>
+                    
+                    {aiSummary.actionableSuggestion && (
+                        <div className="pt-4 border-t border-white/10">
+                            <h4 className="text-sm font-bold text-indigo-300 mb-2 uppercase tracking-wider">Recommended Actions</h4>
+                            <div className="text-slate-300 text-sm leading-relaxed whitespace-pre-line pl-4 border-l-2 border-indigo-500/30">
+                                {aiSummary.actionableSuggestion}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
@@ -208,15 +245,10 @@ const SurveyResults = () => {
 
             {question.type === 'OPEN_TEXT' && (
               <div className="space-y-3">
-                {question.textAnswers && question.textAnswers.length > 0 ? (
-                  question.textAnswers.map((answer, i) => (
-                    <div key={i} className="p-4 rounded-lg bg-white/5 border border-white/5 text-slate-300 text-sm">
-                      "{answer}"
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-slate-500 italic text-sm">No text responses yet.</div>
-                )}
+                <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm text-slate-400">Responses</span>
+                </div>
+                <TextResponseList answers={question.textAnswers} />
               </div>
             )}
           </div>
