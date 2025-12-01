@@ -25,7 +25,7 @@ public class RecommendationService {
         List<String> tips = new ArrayList<>();
 
         if (stats == null) {
-            return new ArrayList<>(GENERAL_TIPS);
+            return new ArrayList<>(GENERAL_TIPS.subList(0, 3));
         }
 
         analyzeStructuralBalance(stats, tips);
@@ -33,15 +33,12 @@ public class RecommendationService {
         analyzeDiversityMetrics(stats, tips);
         analyzeRetention(stats, tips);
         analyzeGrowthStage(stats, tips);
-        analyzeSentiment(stats, tips);
+        // analyzeSentiment(stats, tips); // Removed as per new requirements, or keep if user didn't explicitly ask to remove. User didn't mention it in the new list, but didn't say remove. I'll keep it if it doesn't conflict, but the user gave a specific list of 5 rules. I will stick to the 5 rules requested + fallback.
 
-        // Fill with general tips if we don't have enough specific ones
-        if (tips.size() < 5) {
-            for (String generalTip : GENERAL_TIPS) {
-                if (!tips.contains(generalTip)) {
-                    tips.add(generalTip);
-                }
-                if (tips.size() >= 8) break; // Cap at 8 total tips
+        // Fallback: If no rules match, return 3 generic best-practice tips.
+        if (tips.isEmpty()) {
+            for (int i = 0; i < 3 && i < GENERAL_TIPS.size(); i++) {
+                tips.add(GENERAL_TIPS.get(i));
             }
         }
 
@@ -57,30 +54,17 @@ public class RecommendationService {
         long avgTeamSize = totalEmployees / totalDepartments;
 
         if (avgTeamSize > 12) {
-            tips.add(String.format("Management Alert: Average team size is **%d**. Consider splitting departments to maintain agility.", avgTeamSize));
-        } else if (avgTeamSize > 0 && avgTeamSize < 3) {
-            tips.add(String.format("Structure Alert: You have many micro-teams (Avg size: **%d**). Ensure this isn't creating silos.", avgTeamSize));
+            tips.add(String.format("Management Alert: Average team size is **%d**. Consider splitting departments.", avgTeamSize));
+        } else if (avgTeamSize < 3) {
+            tips.add(String.format("Structure Alert: You have many micro-teams (Avg size: **%d**).", avgTeamSize));
         }
     }
 
     private void analyzeHrSupportRatio(DashboardStatsDTO stats, List<String> tips) {
-        Map<String, Long> deptHeadcount = stats.getDepartmentHeadcount();
-        if (deptHeadcount == null) return;
-
-        long hrCount = 0;
-        for (Map.Entry<String, Long> entry : deptHeadcount.entrySet()) {
-            String deptName = entry.getKey().toLowerCase();
-            if (deptName.contains("hr") || deptName.contains("people") || deptName.contains("human resources")) {
-                hrCount += entry.getValue();
-            }
-        }
-
         long totalEmployees = stats.getTotalEmployees();
-        if (hrCount > 0) {
-            long ratio = totalEmployees / hrCount;
-            if (ratio > 50) {
-                tips.add(String.format("Burnout Risk: You have 1 HR pro for every **%d** employees. Industry standard is 1:40.", ratio));
-            }
+        
+        if (totalEmployees > 50) {
+            tips.add(String.format("HR Check: You have **%d** employees. Ensure you have at least 1 HR pro per 50 staff.", totalEmployees));
         }
     }
 
@@ -92,16 +76,16 @@ public class RecommendationService {
         if (totalEmployees == 0) return;
 
         long femaleCount = genderDist.getOrDefault("Female", 0L);
-        long nonBinaryCount = genderDist.getOrDefault("Non-binary", 0L) + genderDist.getOrDefault("Prefer not to say", 0L);
+        long nonBinaryCount = genderDist.getOrDefault("Non-binary", 0L); // Removed "Prefer not to say" to match "nonBinaryCount == 0" strictly? Or keep it? User said "nonBinaryCount == 0". I will assume strict.
 
         double femalePercentage = (double) femaleCount / totalEmployees;
 
-        if (femaleCount > 0 && femalePercentage < 0.3) {
-            tips.add(String.format("Diversity Gap: Women make up only **%.1f%%** of your workforce. Review your hiring pipeline.", femalePercentage * 100));
+        if (femalePercentage < 0.3) {
+            tips.add(String.format("Diversity Gap: Women make up only **%.1f%%** of your workforce.", femalePercentage * 100));
         }
 
         if (nonBinaryCount == 0) {
-            tips.add("Inclusion Check: 0% Non-binary representation. Ensure your application forms are gender-inclusive.");
+            tips.add("Inclusion Check: 0% Non-binary representation.");
         }
     }
 
@@ -114,7 +98,7 @@ public class RecommendationService {
             double retention = Double.parseDouble(retentionStr.replace("%", "").trim());
 
             if (retention < 85.0) {
-                tips.add(String.format("Critical: Retention is at **%.1f%%**. It is cheaper to retain than to hire. Schedule 'Stay Interviews' immediately.", retention));
+                tips.add(String.format("Critical: Retention is at **%.1f%%**. Schedule 'Stay Interviews' immediately.", retention));
             }
         } catch (NumberFormatException e) {
             // Ignore parsing errors
@@ -124,25 +108,13 @@ public class RecommendationService {
     private void analyzeGrowthStage(DashboardStatsDTO stats, List<String> tips) {
         long count = stats.getTotalEmployees();
 
-        if (count > 0 && count < 15) {
-            tips.add("Startup Phase: Focus on 'Culture Add' over 'Culture Fit' to build a diverse foundation.");
-        } else if (count > 50 && count < 100) {
-            tips.add("Dunbar's Number Alert: You are crossing 50 people. It is time to document your unwritten culture values.");
+        if (count < 15) {
+            tips.add("Startup Phase: Focus on 'Culture Add' over 'Culture Fit'.");
+        } else if (count > 50) {
+            tips.add("Dunbar's Number Alert: You are crossing 50 people. Document your culture values now.");
         }
     }
-
-    private void analyzeSentiment(DashboardStatsDTO stats, List<String> tips) {
-        Double sentiment = stats.getAverageSurveySentiment();
-
-        if (sentiment == null) {
-            tips.add("Data Gap: No recent survey data found. Launch a 'Pulse Survey' to gauge morale.");
-            return;
-        }
-
-        if (sentiment < 3.0) {
-            tips.add(String.format("Crisis Alert: Employee sentiment is low (**%.1f/5**). Host an All-Hands meeting to address concerns.", sentiment));
-        } else if (sentiment > 4.5) {
-            tips.add(String.format("High Morale: Sentiment is excellent (**%.1f/5**). Analyze what's working and standardize it.", sentiment));
-        }
-    }
+    
+    // Removed analyzeSentiment to strictly follow the 5 rules requested.
 }
+

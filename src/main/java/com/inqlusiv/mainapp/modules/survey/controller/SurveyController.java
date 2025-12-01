@@ -3,7 +3,9 @@ package com.inqlusiv.mainapp.modules.survey.controller;
 import com.inqlusiv.mainapp.modules.survey.dto.AnswerDTO;
 import com.inqlusiv.mainapp.modules.survey.dto.SurveyDTO;
 import com.inqlusiv.mainapp.modules.survey.dto.SurveyResultDTO;
+import com.inqlusiv.mainapp.modules.survey.dto.TextSummaryDTO;
 import com.inqlusiv.mainapp.modules.survey.service.SurveyService;
+import com.inqlusiv.mainapp.modules.survey.service.TextAnalysisService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +18,9 @@ public class SurveyController {
 
     @Autowired
     private SurveyService surveyService;
+
+    @Autowired
+    private TextAnalysisService textAnalysisService;
 
     @PostMapping
     public ResponseEntity<?> createSurvey(@RequestBody SurveyDTO dto, @RequestHeader("Authorization") String token) {
@@ -76,6 +81,16 @@ public class SurveyController {
             return ResponseEntity.ok(results);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error fetching survey results: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/analyze")
+    public ResponseEntity<?> analyzeTextResponses(@RequestBody List<String> answers) {
+        try {
+            TextSummaryDTO summary = textAnalysisService.analyzeTextResponses(answers);
+            return ResponseEntity.ok(summary);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error analyzing text responses: " + e.getMessage());
         }
     }
 

@@ -2,9 +2,12 @@ package com.inqlusiv.mainapp.modules.dashboard.controller;
 
 import com.inqlusiv.mainapp.modules.dashboard.dto.DashboardStatsDTO;
 import com.inqlusiv.mainapp.modules.dashboard.service.DashboardService;
+import com.inqlusiv.mainapp.modules.dashboard.service.RecommendationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/dashboard")
@@ -12,6 +15,9 @@ public class DashboardController {
 
     @Autowired
     private DashboardService dashboardService;
+
+    @Autowired
+    private RecommendationService recommendationService;
 
     @GetMapping("/summary")
     public ResponseEntity<?> getStats(@RequestHeader("Authorization") String token) {
@@ -26,6 +32,11 @@ public class DashboardController {
             Long companyId = Long.parseLong(tokenIdPart);
             
             DashboardStatsDTO stats = dashboardService.getStats(companyId);
+            
+            // Generate Smart Tips
+            List<String> tips = recommendationService.generateSmartTips(stats);
+            stats.setSmartTips(tips);
+            
             return ResponseEntity.ok(stats);
         } catch (NumberFormatException e) {
             return ResponseEntity.badRequest().body("Invalid token format");

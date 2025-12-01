@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, Users, BarChart2, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Users, BarChart2, MessageSquare, Sparkles, Loader2 } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -18,6 +18,8 @@ const SurveyResults = () => {
   const navigate = useNavigate();
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [aiSummary, setAiSummary] = useState(null);
+  const [analyzing, setAnalyzing] = useState(false);
 
   useEffect(() => {
     const fetchResults = async () => {
@@ -37,24 +39,97 @@ const SurveyResults = () => {
     fetchResults();
   }, [id]);
 
+  const handleAnalyzeText = async () => {
+    if (!results) return;
+    
+    // Aggregate all text answers
+    const textAnswers = results.questions
+        .filter(q => q.type === 'OPEN_TEXT' && q.textAnswers && q.textAnswers.length > 0)
+        .flatMap(q => q.textAnswers);
+
+    if (textAnswers.length === 0) {
+        alert("No text responses found to analyze.");
+        return;
+    }
+
+    setAnalyzing(true);
+    try {
+        const token = localStorage.getItem('token');
+        const response = await axios.post('http://localhost:8080/api/surveys/analyze', textAnswers, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        setAiSummary(response.data);
+    } catch (error) {
+        console.error("Error analyzing text", error);
+        alert("Failed to generate AI summary.");
+    } finally {
+        setAnalyzing(false);
+    }
+  };
+
   if (loading) return <div className="text-white text-center mt-20">Loading Results...</div>;
   if (!results) return <div className="text-white text-center mt-20">Failed to load results.</div>;
 
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <button 
-          onClick={() => navigate('/dashboard/surveys')}
-          className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h1 className="text-2xl font-display font-bold text-white">{results.title}</h1>
-          <p className="text-slate-400">Survey Results Overview</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+            <button 
+            onClick={() => navigate('/dashboard/surveys')}
+            className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+            >
+            <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div>
+            <h1 className="text-2xl font-display font-bold text-white">{results.title}</h1>
+            <p className="text-slate-400">Survey Results Overview</p>
+            </div>
         </div>
+        
+        <button
+            onClick={handleAnalyzeText}
+            disabled={analyzing}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-brand-purple to-indigo-600 text-white font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+        >
+            {analyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            {analyzing ? 'Analyzing...' : 'Analyze Text Responses'}
+        </button>
       </div>
+
+      {/* AI Summary Section */}
+      {aiSummary && (
+        <div className="p-6 rounded-2xl bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border border-indigo-500/30 backdrop-blur-xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-teal via-brand-purple to-brand-teal"></div>
+            <div className="flex items-start gap-4 relative z-10">
+                <div className="p-3 rounded-xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-300">
+                    <Sparkles className="w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                    <h3 className="text-lg font-display font-bold text-white mb-2">AI Executive Summary</h3>
+                    <p className="text-slate-200 leading-relaxed mb-4">
+                        {aiSummary.summary}
+                    </p>
+                    
+                    <div className="flex flex-wrap items-center gap-3">
+                        <div className={`px-3 py-1 rounded-full text-xs font-bold border ${
+                            aiSummary.sentimentLabel === 'Positive' ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400' :
+                            aiSummary.sentimentLabel === 'Negative' ? 'bg-rose-500/20 border-rose-500/30 text-rose-400' :
+                            'bg-slate-500/20 border-slate-500/30 text-slate-400'
+                        }`}>
+                            Sentiment: {aiSummary.sentimentLabel}
+                        </div>
+                        
+                        {aiSummary.topThemes.map((theme, i) => (
+                            <div key={i} className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300">
+                                #{theme}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
