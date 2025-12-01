@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Plus, Calendar, BarChart2, Edit, Play, Trash2, FileText } from 'lucide-react';
+import { Plus, Calendar, BarChart2, Edit, Play, Trash2, FileText, Zap } from 'lucide-react';
 
 const Surveys = () => {
   const navigate = useNavigate();
   const [surveys, setSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [simulating, setSimulating] = useState(false);
 
   useEffect(() => {
     fetchSurveys();
@@ -37,6 +38,24 @@ const Surveys = () => {
           console.error("Error launching survey", error);
           alert("Failed to launch survey");
       }
+  }
+
+  const handleSimulate = async (id) => {
+    if (!window.confirm("This will generate random responses for all pending employees. Continue?")) return;
+    setSimulating(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`http://localhost:8080/api/surveys/${id}/simulate`, {}, {
+          headers: { Authorization: `Bearer ${token}` }
+      });
+      alert("Simulation complete! Check results.");
+      fetchSurveys();
+    } catch (error) {
+        console.error("Error simulating responses", error);
+        alert("Failed to simulate responses");
+    } finally {
+        setSimulating(false);
+    }
   }
 
   const getStatusColor = (status) => {
@@ -99,10 +118,25 @@ const Surveys = () => {
                   </button>
                 </>
               ) : (
-                <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white text-sm transition-colors">
-                  <BarChart2 className="w-4 h-4" />
-                  View Results
-                </button>
+                <>
+                  <button 
+                    onClick={() => navigate(`/dashboard/surveys/${survey.id}/results`)}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white text-sm transition-colors"
+                  >
+                    <BarChart2 className="w-4 h-4" />
+                    View Results
+                  </button>
+                  {survey.status === 'ACTIVE' && (
+                    <button 
+                      onClick={() => handleSimulate(survey.id)}
+                      disabled={simulating}
+                      className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/20 text-sm transition-colors"
+                      title="Simulate Employee Responses (Demo)"
+                    >
+                      <Zap className="w-4 h-4" />
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>

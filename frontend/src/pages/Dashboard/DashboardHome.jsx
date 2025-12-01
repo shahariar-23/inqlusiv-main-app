@@ -312,8 +312,8 @@ const DashboardHome = () => {
             </button>
           </div>
           
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+          <div style={{ width: '100%', height: 300 }}>
+            <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={diversityData}
@@ -353,8 +353,8 @@ const DashboardHome = () => {
             </div>
           </div>
 
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+          <div style={{ width: '100%', height: 300 }}>
+            <ResponsiveContainer width="100%" height="100%">
               <BarChart data={departmentData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
                 <XAxis 

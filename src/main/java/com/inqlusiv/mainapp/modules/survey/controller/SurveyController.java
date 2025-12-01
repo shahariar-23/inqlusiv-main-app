@@ -1,6 +1,8 @@
 package com.inqlusiv.mainapp.modules.survey.controller;
 
+import com.inqlusiv.mainapp.modules.survey.dto.AnswerDTO;
 import com.inqlusiv.mainapp.modules.survey.dto.SurveyDTO;
+import com.inqlusiv.mainapp.modules.survey.dto.SurveyResultDTO;
 import com.inqlusiv.mainapp.modules.survey.service.SurveyService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -54,6 +56,48 @@ public class SurveyController {
             return ResponseEntity.ok(launchedSurvey);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error launching survey: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/{id}/simulate")
+    public ResponseEntity<?> simulateResponses(@PathVariable Long id) {
+        try {
+            int count = surveyService.simulateResponses(id);
+            return ResponseEntity.ok("Simulated " + count + " responses successfully");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error simulating responses: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/{id}/results")
+    public ResponseEntity<?> getSurveyResults(@PathVariable Long id) {
+        try {
+            SurveyResultDTO results = surveyService.getSurveyResults(id);
+            return ResponseEntity.ok(results);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error fetching survey results: " + e.getMessage());
+        }
+    }
+
+    // --- Public Endpoints for Survey Takers ---
+
+    @GetMapping("/public/{token}")
+    public ResponseEntity<?> getSurveyByToken(@PathVariable String token) {
+        try {
+            SurveyDTO survey = surveyService.getSurveyByToken(token);
+            return ResponseEntity.ok(survey);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error accessing survey: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/public/{token}/submit")
+    public ResponseEntity<?> submitSurvey(@PathVariable String token, @RequestBody List<AnswerDTO> answers) {
+        try {
+            surveyService.submitSurvey(token, answers);
+            return ResponseEntity.ok("Survey submitted successfully");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error submitting survey: " + e.getMessage());
         }
     }
 

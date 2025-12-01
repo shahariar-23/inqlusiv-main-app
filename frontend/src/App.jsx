@@ -9,6 +9,8 @@ import Settings from './pages/Dashboard/Settings';
 import Analytics from './pages/Dashboard/Analytics';
 import Surveys from './pages/Dashboard/Surveys';
 import SurveyBuilder from './pages/Dashboard/SurveyBuilder';
+import SurveyResults from './pages/Dashboard/SurveyResults';
+import SurveyTaker from './pages/Public/SurveyTaker';
 
 function App() {
   return (
@@ -16,6 +18,7 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/setup" element={<SetupWizard />} />
+        <Route path="/s/:token" element={<SurveyTaker />} />
         
         {/* Dashboard Route with Layout */}
         <Route 
@@ -68,6 +71,15 @@ function App() {
           element={
             <DashboardLayout>
               <SurveyBuilder />
+            </DashboardLayout>
+          } 
+        />
+
+        <Route 
+          path="/dashboard/surveys/:id/results" 
+          element={
+            <DashboardLayout>
+              <SurveyResults />
             </DashboardLayout>
           } 
         />
