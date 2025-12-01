@@ -470,44 +470,22 @@ const DashboardHome = () => {
            </div>
         </div>
         
-        {/* Smart Insight Widget - Intelligent & Dynamic */}
+        {/* Smart Insight Widget - Simplified */}
         <motion.div 
             variants={itemVariants}
             className="lg:col-span-1 relative group"
         >
-            {/* Dynamic Gradient Border/Glow Effect */}
-            <div className={`absolute -inset-[1px] bg-gradient-to-r ${tipCategory.color} rounded-2xl opacity-40 blur-sm group-hover:opacity-80 transition-opacity duration-500`}></div>
+            {/* Static Gradient Border */}
+            <div className={`absolute -inset-[1px] bg-gradient-to-r ${tipCategory.color} rounded-2xl opacity-30`}></div>
             
-            <div className="relative h-full bg-midnight-900/90 backdrop-blur-xl rounded-2xl p-6 flex flex-col justify-center items-center text-center border border-white/10 shadow-2xl overflow-hidden">
+            <div className="relative h-full bg-midnight-900/90 backdrop-blur-xl rounded-2xl p-6 flex flex-col justify-center items-center text-center border border-white/10 shadow-xl overflow-hidden">
                 
-                {/* Ambient Background Glow based on category */}
+                {/* Static Icon Container */}
                 <div 
-                    className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-to-b from-white/5 via-transparent to-transparent rotate-45 pointer-events-none transition-colors duration-1000"
-                    style={{ background: `radial-gradient(circle at 50% 50%, ${tipCategory.glow.replace('0.6', '0.15')}, transparent 70%)` }}
-                ></div>
-
-                {/* Animated Icon Container */}
-                <motion.div 
-                    key={tipCategory.label} // Re-trigger animation on category change
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ 
-                        scale: [1, 1.05, 1],
-                        opacity: 1,
-                        boxShadow: [
-                            `0 0 0px ${tipCategory.glow.replace('0.6', '0')}`,
-                            `0 0 25px ${tipCategory.glow}`, 
-                            `0 0 0px ${tipCategory.glow.replace('0.6', '0')}`
-                        ]
-                    }}
-                    transition={{ 
-                        duration: 3, 
-                        repeat: Infinity,
-                        ease: "easeInOut" 
-                    }}
                     className={`relative z-10 w-16 h-16 rounded-2xl bg-gradient-to-br ${tipCategory.color} flex items-center justify-center mb-5 shadow-lg border border-white/20`}
                 >
                     <tipCategory.icon className="w-8 h-8 text-white drop-shadow-md" />
-                </motion.div>
+                </div>
                 
                 <h3 className="relative z-10 text-white font-display font-bold text-lg mb-3 tracking-wide flex items-center gap-2">
                   {tipCategory.label}
@@ -517,7 +495,6 @@ const DashboardHome = () => {
 
                 <p className="relative z-10 text-slate-200 text-sm leading-relaxed font-medium min-h-[60px] flex items-center justify-center">
                     {displayedTip}
-                    <span className="animate-pulse ml-1 inline-block w-1 h-4 bg-brand-teal align-middle"></span>
                 </p>
             </div>
         </motion.div>
