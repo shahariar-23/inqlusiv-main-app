@@ -10,7 +10,10 @@ import {
   Award, 
   Download, 
   ArrowUpRight,
-  Loader2
+  Loader2,
+  Sparkles,
+  AlertTriangle,
+  CheckCircle
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -44,6 +47,13 @@ const DashboardHome = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentTip, setCurrentTip] = useState('');
+  const [displayedTip, setDisplayedTip] = useState('');
+  const [tipCategory, setTipCategory] = useState({ 
+    icon: Sparkles, 
+    color: 'from-brand-purple to-indigo-600', 
+    label: 'AI Smart Insight',
+    glow: 'rgba(139, 92, 246, 0.6)'
+  });
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -82,6 +92,58 @@ const DashboardHome = () => {
       
       return () => clearInterval(intervalId);
   }, [stats]);
+
+  // Handle Tip Animation & Categorization
+  useEffect(() => {
+    if (!currentTip) return;
+
+    // 1. Analyze Category based on keywords
+    let category = { 
+        icon: Sparkles, 
+        color: 'from-brand-purple to-indigo-600', 
+        label: 'AI Smart Insight', 
+        glow: 'rgba(139, 92, 246, 0.6)' 
+    };
+    
+    const lower = currentTip.toLowerCase();
+    
+    if (lower.includes('critical') || lower.includes('crisis') || lower.includes('risk') || lower.includes('alert')) {
+        category = { 
+            icon: AlertTriangle, 
+            color: 'from-rose-500 to-orange-600', 
+            label: 'Attention Needed', 
+            glow: 'rgba(244, 63, 94, 0.6)' 
+        };
+    } else if (lower.includes('high morale') || lower.includes('perfect') || lower.includes('success')) {
+        category = { 
+            icon: CheckCircle, 
+            color: 'from-emerald-400 to-teal-500', 
+            label: 'Positive Trend', 
+            glow: 'rgba(52, 211, 153, 0.6)' 
+        };
+    } else if (lower.includes('gap') || lower.includes('check') || lower.includes('opportunity')) {
+        category = { 
+            icon: Sparkles, 
+            color: 'from-blue-400 to-indigo-500', 
+            label: 'Optimization Opportunity', 
+            glow: 'rgba(96, 165, 250, 0.6)' 
+        };
+    }
+
+    setTipCategory(category);
+    setDisplayedTip('');
+    
+    // 2. Typewriter Effect
+    let i = 0;
+    const text = currentTip;
+    const timer = setInterval(() => {
+        setDisplayedTip(text.substring(0, i + 1));
+        i++;
+        if (i >= text.length) clearInterval(timer);
+    }, 10); // Typing speed
+
+    return () => clearInterval(timer);
+  }, [currentTip]);
 
   const handleDownloadReport = async () => {
     if (!dashboardRef.current) return;
@@ -408,16 +470,57 @@ const DashboardHome = () => {
            </div>
         </div>
         
-        {/* Placeholder for another widget or empty space */}
-        <div className="lg:col-span-1 p-6 rounded-2xl bg-gradient-to-br from-brand-purple/20 to-midnight-900/60 backdrop-blur-xl border border-white/5 flex flex-col justify-center items-center text-center">
-            <div className="w-16 h-16 rounded-full bg-brand-purple/20 flex items-center justify-center mb-4">
-                <Award className="w-8 h-8 text-brand-purple" />
+        {/* Smart Insight Widget - Intelligent & Dynamic */}
+        <motion.div 
+            variants={itemVariants}
+            className="lg:col-span-1 relative group"
+        >
+            {/* Dynamic Gradient Border/Glow Effect */}
+            <div className={`absolute -inset-[1px] bg-gradient-to-r ${tipCategory.color} rounded-2xl opacity-40 blur-sm group-hover:opacity-80 transition-opacity duration-500`}></div>
+            
+            <div className="relative h-full bg-midnight-900/90 backdrop-blur-xl rounded-2xl p-6 flex flex-col justify-center items-center text-center border border-white/10 shadow-2xl overflow-hidden">
+                
+                {/* Ambient Background Glow based on category */}
+                <div 
+                    className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-to-b from-white/5 via-transparent to-transparent rotate-45 pointer-events-none transition-colors duration-1000"
+                    style={{ background: `radial-gradient(circle at 50% 50%, ${tipCategory.glow.replace('0.6', '0.15')}, transparent 70%)` }}
+                ></div>
+
+                {/* Animated Icon Container */}
+                <motion.div 
+                    key={tipCategory.label} // Re-trigger animation on category change
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ 
+                        scale: [1, 1.05, 1],
+                        opacity: 1,
+                        boxShadow: [
+                            `0 0 0px ${tipCategory.glow.replace('0.6', '0')}`,
+                            `0 0 25px ${tipCategory.glow}`, 
+                            `0 0 0px ${tipCategory.glow.replace('0.6', '0')}`
+                        ]
+                    }}
+                    transition={{ 
+                        duration: 3, 
+                        repeat: Infinity,
+                        ease: "easeInOut" 
+                    }}
+                    className={`relative z-10 w-16 h-16 rounded-2xl bg-gradient-to-br ${tipCategory.color} flex items-center justify-center mb-5 shadow-lg border border-white/20`}
+                >
+                    <tipCategory.icon className="w-8 h-8 text-white drop-shadow-md" />
+                </motion.div>
+                
+                <h3 className="relative z-10 text-white font-display font-bold text-lg mb-3 tracking-wide flex items-center gap-2">
+                  {tipCategory.label}
+                </h3>
+                
+                <div className={`relative z-10 h-px w-16 bg-gradient-to-r from-transparent via-white/30 to-transparent mb-4`}></div>
+
+                <p className="relative z-10 text-slate-200 text-sm leading-relaxed font-medium min-h-[60px] flex items-center justify-center">
+                    {displayedTip}
+                    <span className="animate-pulse ml-1 inline-block w-1 h-4 bg-brand-teal align-middle"></span>
+                </p>
             </div>
-            <h3 className="text-white font-display font-semibold text-lg mb-2">Pro Tip</h3>
-            <p className="text-slate-400 text-sm">
-                {currentTip}
-            </p>
-        </div>
+        </motion.div>
       </motion.div>
     </motion.div>
   );

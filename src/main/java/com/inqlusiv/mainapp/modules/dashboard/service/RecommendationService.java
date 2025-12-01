@@ -29,10 +29,11 @@ public class RecommendationService {
         }
 
         analyzeStructuralBalance(stats, tips);
-        analyzeMinorityRepresentation(stats, tips);
         analyzeHrSupportRatio(stats, tips);
+        analyzeDiversityMetrics(stats, tips);
         analyzeRetention(stats, tips);
         analyzeGrowthStage(stats, tips);
+        analyzeSentiment(stats, tips);
 
         // Fill with general tips if we don't have enough specific ones
         if (tips.size() < 5) {
@@ -56,29 +57,9 @@ public class RecommendationService {
         long avgTeamSize = totalEmployees / totalDepartments;
 
         if (avgTeamSize > 12) {
-            tips.add(String.format("Your average team size is **%d**, which is high. Consider splitting large departments to maintain agility.", avgTeamSize));
+            tips.add(String.format("Management Alert: Average team size is **%d**. Consider splitting departments to maintain agility.", avgTeamSize));
         } else if (avgTeamSize > 0 && avgTeamSize < 3) {
-            tips.add(String.format("You have many micro-teams (Avg size: **%d**). Ensure this isn't creating silos.", avgTeamSize));
-        }
-    }
-
-    private void analyzeMinorityRepresentation(DashboardStatsDTO stats, List<String> tips) {
-        Map<String, Long> genderDist = stats.getGenderDistribution();
-        if (genderDist == null) return;
-
-        long nonBinary = genderDist.getOrDefault("Non-binary", 0L) + genderDist.getOrDefault("Prefer not to say", 0L);
-        if (nonBinary == 0) {
-            tips.add("Your data shows 0% Non-binary representation. Review your survey forms—are gender options inclusive enough?");
-        }
-
-        long maleCount = genderDist.getOrDefault("Male", 0L);
-        long totalEmployees = stats.getTotalEmployees();
-
-        if (totalEmployees > 0) {
-            double malePercentage = (double) maleCount / totalEmployees * 100;
-            if (malePercentage > 70) {
-                tips.add(String.format("The company is **%.1f%%** Male. Consider setting a specific OKR to increase gender diversity in Q3.", malePercentage));
-            }
+            tips.add(String.format("Structure Alert: You have many micro-teams (Avg size: **%d**). Ensure this isn't creating silos.", avgTeamSize));
         }
     }
 
@@ -98,8 +79,29 @@ public class RecommendationService {
         if (hrCount > 0) {
             long ratio = totalEmployees / hrCount;
             if (ratio > 50) {
-                tips.add(String.format("Ratio Alert: You have 1 HR pro for every **%d** employees. Industry standard is 1:40. Burnout risk is high.", ratio));
+                tips.add(String.format("Burnout Risk: You have 1 HR pro for every **%d** employees. Industry standard is 1:40.", ratio));
             }
+        }
+    }
+
+    private void analyzeDiversityMetrics(DashboardStatsDTO stats, List<String> tips) {
+        Map<String, Long> genderDist = stats.getGenderDistribution();
+        if (genderDist == null) return;
+
+        long totalEmployees = stats.getTotalEmployees();
+        if (totalEmployees == 0) return;
+
+        long femaleCount = genderDist.getOrDefault("Female", 0L);
+        long nonBinaryCount = genderDist.getOrDefault("Non-binary", 0L) + genderDist.getOrDefault("Prefer not to say", 0L);
+
+        double femalePercentage = (double) femaleCount / totalEmployees;
+
+        if (femaleCount > 0 && femalePercentage < 0.3) {
+            tips.add(String.format("Diversity Gap: Women make up only **%.1f%%** of your workforce. Review your hiring pipeline.", femalePercentage * 100));
+        }
+
+        if (nonBinaryCount == 0) {
+            tips.add("Inclusion Check: 0% Non-binary representation. Ensure your application forms are gender-inclusive.");
         }
     }
 
@@ -110,12 +112,9 @@ public class RecommendationService {
         try {
             // Remove % and parse
             double retention = Double.parseDouble(retentionStr.replace("%", "").trim());
-            long totalEmployees = stats.getTotalEmployees();
 
-            if (retention >= 99.9 && totalEmployees > 20) {
-                tips.add("Perfect 100% retention! Interview your longest-tenured staff to document your 'Secret Sauce' for recruiting.");
-            } else if (retention < 75.0) {
-                tips.add("Critical Alert: 1 in 4 hires are leaving. Pause hiring and focus strictly on fixing the 'Leaky Bucket'.");
+            if (retention < 85.0) {
+                tips.add(String.format("Critical: Retention is at **%.1f%%**. It is cheaper to retain than to hire. Schedule 'Stay Interviews' immediately.", retention));
             }
         } catch (NumberFormatException e) {
             // Ignore parsing errors
@@ -125,10 +124,25 @@ public class RecommendationService {
     private void analyzeGrowthStage(DashboardStatsDTO stats, List<String> tips) {
         long count = stats.getTotalEmployees();
 
-        if (count > 0 && count < 10) {
-            tips.add("Startup Mode: Focus on 'Culture Add' rather than 'Culture Fit' to build a diverse foundation early.");
+        if (count > 0 && count < 15) {
+            tips.add("Startup Phase: Focus on 'Culture Add' over 'Culture Fit' to build a diverse foundation.");
         } else if (count > 50 && count < 100) {
-            tips.add("The 'Dunbar's Number' Phase: You are crossing 50 people. Documenting your unwritten culture values is now critical.");
+            tips.add("Dunbar's Number Alert: You are crossing 50 people. It is time to document your unwritten culture values.");
+        }
+    }
+
+    private void analyzeSentiment(DashboardStatsDTO stats, List<String> tips) {
+        Double sentiment = stats.getAverageSurveySentiment();
+
+        if (sentiment == null) {
+            tips.add("Data Gap: No recent survey data found. Launch a 'Pulse Survey' to gauge morale.");
+            return;
+        }
+
+        if (sentiment < 3.0) {
+            tips.add(String.format("Crisis Alert: Employee sentiment is low (**%.1f/5**). Host an All-Hands meeting to address concerns.", sentiment));
+        } else if (sentiment > 4.5) {
+            tips.add(String.format("High Morale: Sentiment is excellent (**%.1f/5**). Analyze what's working and standardize it.", sentiment));
         }
     }
 }

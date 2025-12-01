@@ -4,6 +4,7 @@ import com.inqlusiv.mainapp.modules.company.repository.DepartmentRepository;
 import com.inqlusiv.mainapp.modules.dashboard.dto.DashboardStatsDTO;
 import com.inqlusiv.mainapp.modules.employee.entity.EmployeeStatus;
 import com.inqlusiv.mainapp.modules.employee.repository.EmployeeRepository;
+import com.inqlusiv.mainapp.modules.survey.service.SurveyService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +23,9 @@ public class DashboardService {
 
     @Autowired
     private RecommendationService recommendationService;
+
+    @Autowired
+    private SurveyService surveyService;
 
     public DashboardStatsDTO getStats(Long companyId) {
         long activeCount = employeeRepository.countByCompanyIdAndStatusOrNull(companyId, EmployeeStatus.ACTIVE);
@@ -68,6 +72,8 @@ public class DashboardService {
             "System maintenance scheduled"
         );
 
+        Double sentimentScore = surveyService.getCompanySentimentScore(companyId);
+
         DashboardStatsDTO stats = DashboardStatsDTO.builder()
                 .totalEmployees(currentHeadcount)
                 .totalDepartments(totalDepartments)
@@ -75,6 +81,7 @@ public class DashboardService {
                 .departmentHeadcount(departmentHeadcount)
                 .openRoles(0L) // Placeholder: No Job Openings module yet
                 .retentionRate(retentionRate)
+                .averageSurveySentiment(sentimentScore)
                 .recentActivities(recentActivities)
                 .build();
 

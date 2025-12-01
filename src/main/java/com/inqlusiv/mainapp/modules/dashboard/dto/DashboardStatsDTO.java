@@ -19,6 +19,7 @@ public class DashboardStatsDTO {
     private Map<String, Long> departmentHeadcount;
     private long openRoles;
     private String retentionRate;
+    private Double averageSurveySentiment;
     private List<String> recentActivities;
     private List<String> tips;
 }

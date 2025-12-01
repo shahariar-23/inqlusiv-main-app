@@ -220,6 +220,54 @@ public class SurveyService {
         return count;
     }
 
+    public Double getCompanySentimentScore(Long companyId) {
+        // 1. Get all surveys for the company
+        List<Survey> surveys = surveyRepository.findByCompanyId(companyId);
+        
+        if (surveys.isEmpty()) {
+            return null;
+        }
+
+        // 2. Find the most recent active or closed survey
+        Survey latestSurvey = surveys.stream()
+                .filter(s -> s.getStatus() == SurveyStatus.ACTIVE || s.getStatus() == SurveyStatus.CLOSED)
+                .max((s1, s2) -> s1.getId().compareTo(s2.getId())) // Assuming higher ID is newer
+                .orElse(null);
+
+        if (latestSurvey == null) {
+            return null;
+        }
+
+        // 3. Calculate average rating for all RATING_SCALE questions in this survey
+        List<SurveyResponse> responses = surveyResponseRepository.findBySurveyId(latestSurvey.getId());
+        
+        if (responses.isEmpty()) {
+            return null;
+        }
+
+        double totalScore = 0;
+        int count = 0;
+
+        for (SurveyResponse response : responses) {
+            for (Answer answer : response.getAnswers()) {
+                // We need to check if the question type is RATING_SCALE.
+                // Since Answer doesn't link directly to Question type easily without fetching,
+                // we can iterate questions of the survey and match IDs.
+                Question question = latestSurvey.getQuestions().stream()
+                        .filter(q -> q.getId().equals(answer.getQuestionId()))
+                        .findFirst()
+                        .orElse(null);
+
+                if (question != null && question.getType() == QuestionType.RATING_SCALE && answer.getIntValue() != null) {
+                    totalScore += answer.getIntValue();
+                    count++;
+                }
+            }
+        }
+
+        return count > 0 ? totalScore / count : null;
+    }
+
     public SurveyResultDTO getSurveyResults(Long surveyId) {
         Survey survey = surveyRepository.findById(surveyId)
                 .orElseThrow(() -> new RuntimeException("Survey not found"));
