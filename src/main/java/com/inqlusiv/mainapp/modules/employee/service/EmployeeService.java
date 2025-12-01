@@ -7,6 +7,7 @@ import com.inqlusiv.mainapp.modules.company.repository.DepartmentRepository;
 import com.inqlusiv.mainapp.modules.employee.dto.EmployeeDTO;
 import com.inqlusiv.mainapp.modules.employee.entity.Employee;
 import com.inqlusiv.mainapp.modules.employee.repository.EmployeeRepository;
+import com.inqlusiv.mainapp.modules.employee.entity.EmployeeStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -64,6 +65,7 @@ public class EmployeeService {
                 .gender(dto.getGender())
                 .startDate(dto.getStartDate())
                 .location(dto.getLocation())
+                .status(EmployeeStatus.ACTIVE)
                 .company(company)
                 .department(department)
                 .build();
@@ -101,6 +103,32 @@ public class EmployeeService {
     }
 
     @Transactional
+    public EmployeeDTO updateEmployeeStatus(Long companyId, Long id, String status, java.time.LocalDate exitDate) {
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Employee not found"));
+
+        if (!employee.getCompany().getId().equals(companyId)) {
+            throw new RuntimeException("Unauthorized access to employee");
+        }
+
+        try {
+            EmployeeStatus newStatus = EmployeeStatus.valueOf(status.toUpperCase());
+            employee.setStatus(newStatus);
+            
+            if (newStatus == EmployeeStatus.TERMINATED || newStatus == EmployeeStatus.RESIGNED) {
+                employee.setExitDate(exitDate != null ? exitDate : java.time.LocalDate.now());
+            } else {
+                employee.setExitDate(null);
+            }
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid status: " + status);
+        }
+
+        Employee saved = employeeRepository.save(employee);
+        return convertToDTO(saved);
+    }
+
+    @Transactional
     public void deleteEmployee(Long companyId, Long id) {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
@@ -122,6 +150,8 @@ public class EmployeeService {
                 .gender(employee.getGender())
                 .startDate(employee.getStartDate())
                 .location(employee.getLocation())
+                .status(employee.getStatus() != null ? employee.getStatus().name() : "ACTIVE")
+                .exitDate(employee.getExitDate())
                 .departmentId(employee.getDepartment() != null ? employee.getDepartment().getId() : null)
                 .departmentName(employee.getDepartment() != null ? employee.getDepartment().getName() : null)
                 .build();

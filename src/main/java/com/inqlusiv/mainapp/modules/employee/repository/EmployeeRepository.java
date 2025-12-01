@@ -1,6 +1,7 @@
 package com.inqlusiv.mainapp.modules.employee.repository;
 
 import com.inqlusiv.mainapp.modules.employee.entity.Employee;
+import com.inqlusiv.mainapp.modules.employee.entity.EmployeeStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,7 +14,14 @@ import java.util.List;
 @Repository
 public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     long countByCompanyId(Long companyId);
+
+    long countByCompanyIdAndStatus(Long companyId, EmployeeStatus status);
+
+    @Query("SELECT COUNT(e) FROM Employee e WHERE e.company.id = :companyId AND (e.status = :status OR e.status IS NULL)")
+    long countByCompanyIdAndStatusOrNull(@Param("companyId") Long companyId, @Param("status") EmployeeStatus status);
     
+    long countByDepartmentId(Long departmentId);
+
     boolean existsByEmail(String email);
 
     Page<Employee> findByCompanyId(Long companyId, Pageable pageable);

@@ -2,6 +2,7 @@ package com.inqlusiv.mainapp.modules.dashboard.service;
 
 import com.inqlusiv.mainapp.modules.company.repository.DepartmentRepository;
 import com.inqlusiv.mainapp.modules.dashboard.dto.DashboardStatsDTO;
+import com.inqlusiv.mainapp.modules.employee.entity.EmployeeStatus;
 import com.inqlusiv.mainapp.modules.employee.repository.EmployeeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -20,7 +21,20 @@ public class DashboardService {
     private DepartmentRepository departmentRepository;
 
     public DashboardStatsDTO getStats(Long companyId) {
-        long totalEmployees = employeeRepository.countByCompanyId(companyId);
+        long activeCount = employeeRepository.countByCompanyIdAndStatusOrNull(companyId, EmployeeStatus.ACTIVE);
+        long onLeaveCount = employeeRepository.countByCompanyIdAndStatus(companyId, EmployeeStatus.ON_LEAVE);
+        long terminatedCount = employeeRepository.countByCompanyIdAndStatus(companyId, EmployeeStatus.TERMINATED);
+        long resignedCount = employeeRepository.countByCompanyIdAndStatus(companyId, EmployeeStatus.RESIGNED);
+
+        long currentHeadcount = activeCount + onLeaveCount;
+        long totalHistory = currentHeadcount + terminatedCount + resignedCount;
+        
+        String retentionRate = "100%";
+        if (totalHistory > 0) {
+            double rate = ((double) currentHeadcount / totalHistory) * 100;
+            retentionRate = String.format("%.1f%%", rate);
+        }
+
         long totalDepartments = departmentRepository.countByCompanyId(companyId);
 
         List<Object[]> genderStats = employeeRepository.countEmployeesByGender(companyId);
@@ -52,12 +66,12 @@ public class DashboardService {
         );
 
         return DashboardStatsDTO.builder()
-                .totalEmployees(totalEmployees)
+                .totalEmployees(currentHeadcount)
                 .totalDepartments(totalDepartments)
                 .genderDistribution(genderDistribution)
                 .departmentHeadcount(departmentHeadcount)
                 .openRoles(0L) // Placeholder: No Job Openings module yet
-                .retentionRate("100%") // Placeholder: No historical data yet
+                .retentionRate(retentionRate)
                 .recentActivities(recentActivities)
                 .build();
     }

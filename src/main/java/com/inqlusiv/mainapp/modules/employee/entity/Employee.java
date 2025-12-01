@@ -41,6 +41,13 @@ public class Employee {
     @Column(name = "location")
     private String location;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    private EmployeeStatus status;
+
+    @Column(name = "exit_date")
+    private java.time.LocalDate exitDate;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id")
     private Company company;

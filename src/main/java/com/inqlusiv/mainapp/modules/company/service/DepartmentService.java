@@ -60,4 +60,42 @@ public class DepartmentService {
                 .headcount(0L)
                 .build();
     }
+
+    @Transactional
+    public DepartmentDTO updateDepartment(Long companyId, Long deptId, DepartmentDTO dto) {
+        Department department = departmentRepository.findById(deptId)
+                .orElseThrow(() -> new RuntimeException("Department not found"));
+
+        if (!department.getCompany().getId().equals(companyId)) {
+            throw new RuntimeException("Unauthorized access to department");
+        }
+
+        department.setName(dto.getName());
+        Department saved = departmentRepository.save(department);
+        
+        long headcount = employeeRepository.countByDepartmentId(saved.getId());
+
+        return DepartmentDTO.builder()
+                .id(saved.getId())
+                .name(saved.getName())
+                .headcount(headcount)
+                .build();
+    }
+
+    @Transactional
+    public void deleteDepartment(Long companyId, Long deptId) {
+        Department department = departmentRepository.findById(deptId)
+                .orElseThrow(() -> new RuntimeException("Department not found"));
+
+        if (!department.getCompany().getId().equals(companyId)) {
+            throw new RuntimeException("Unauthorized access to department");
+        }
+
+        long employeeCount = employeeRepository.countByDepartmentId(deptId);
+        if (employeeCount > 0) {
+            throw new RuntimeException("Cannot delete department with active employees. Move them first.");
+        }
+
+        departmentRepository.delete(department);
+    }
 }

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, Edit2, Trash2, User, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, User, X, ChevronLeft, ChevronRight, MoreVertical, UserMinus, Shield } from 'lucide-react';
 
 const Employees = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -20,8 +21,12 @@ const Employees = () => {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState(null);
+  const [employeeToUpdateStatus, setEmployeeToUpdateStatus] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [activeMenu, setActiveMenu] = useState(null);
+  
   const [newEmployee, setNewEmployee] = useState({
     id: null,
     firstName: '',
@@ -32,6 +37,11 @@ const Employees = () => {
     departmentId: '',
     location: '',
     startDate: ''
+  });
+
+  const [statusUpdate, setStatusUpdate] = useState({
+    status: 'TERMINATED',
+    exitDate: new Date().toISOString().split('T')[0]
   });
 
   const fetchDepartments = async () => {
@@ -68,6 +78,10 @@ const Employees = () => {
   useEffect(() => {
     fetchEmployees();
     fetchDepartments();
+    
+    const handleClickOutside = () => setActiveMenu(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
   }, [search, scope, departmentId, page]);
 
   useEffect(() => {
@@ -110,7 +124,26 @@ const Employees = () => {
     }
   };
 
-  const handleEditClick = (employee) => {
+  const handleStatusUpdate = async (e) => {
+    e.preventDefault();
+    if (!employeeToUpdateStatus) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.patch(`http://localhost:8080/api/employees/${employeeToUpdateStatus.id}/status`, statusUpdate, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setIsStatusModalOpen(false);
+      setEmployeeToUpdateStatus(null);
+      fetchEmployees();
+    } catch (error) {
+      console.error("Error updating status", error);
+      alert("Failed to update status");
+    }
+  };
+
+  const handleEditClick = (employee, e) => {
+    e.stopPropagation();
     setNewEmployee({
       id: employee.id,
       firstName: employee.firstName,
@@ -124,11 +157,25 @@ const Employees = () => {
     });
     setIsEditMode(true);
     setIsModalOpen(true);
+    setActiveMenu(null);
   };
 
-  const handleDeleteClick = (employee) => {
+  const handleDeleteClick = (employee, e) => {
+    e.stopPropagation();
     setEmployeeToDelete(employee);
     setIsDeleteModalOpen(true);
+    setActiveMenu(null);
+  };
+
+  const handleStatusClick = (employee, e) => {
+    e.stopPropagation();
+    setEmployeeToUpdateStatus(employee);
+    setStatusUpdate({
+      status: 'TERMINATED',
+      exitDate: new Date().toISOString().split('T')[0]
+    });
+    setIsStatusModalOpen(true);
+    setActiveMenu(null);
   };
 
   const confirmDelete = async () => {
@@ -145,6 +192,38 @@ const Employees = () => {
     } catch (error) {
       console.error("Error deleting employee", error);
       alert("Failed to delete employee");
+    }
+  };
+
+  const handleAddToTeam = (employee, e) => {
+    e.stopPropagation();
+    navigate('/dashboard/settings', { 
+      state: { 
+        inviteData: { 
+          name: `${employee.firstName} ${employee.lastName}`, 
+          email: employee.email 
+        } 
+      } 
+    });
+  };
+
+  const toggleMenu = (id, e) => {
+    e.stopPropagation();
+    setActiveMenu(activeMenu === id ? null : id);
+  };
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'ACTIVE':
+        return <span className="px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs border border-emerald-500/20">Active</span>;
+      case 'TERMINATED':
+        return <span className="px-2 py-1 rounded-full bg-red-500/10 text-red-400 text-xs border border-red-500/20">Terminated</span>;
+      case 'RESIGNED':
+        return <span className="px-2 py-1 rounded-full bg-amber-500/10 text-amber-400 text-xs border border-amber-500/20">Resigned</span>;
+      case 'ON_LEAVE':
+        return <span className="px-2 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs border border-blue-500/20">On Leave</span>;
+      default:
+        return <span className="px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs border border-emerald-500/20">Active</span>;
     }
   };
 
@@ -187,6 +266,7 @@ const Employees = () => {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               className="w-full max-w-md bg-midnight-900 border border-white/10 rounded-2xl p-6 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold text-white">{isEditMode ? 'Edit Employee' : 'Add New Employee'}</h2>
@@ -312,6 +392,77 @@ const Employees = () => {
         )}
       </AnimatePresence>
 
+      {/* Status Update Modal */}
+      <AnimatePresence>
+        {isStatusModalOpen && employeeToUpdateStatus && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md bg-midnight-900 border border-white/10 rounded-2xl p-6 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-white">Update Status</h2>
+                <button onClick={() => setIsStatusModalOpen(false)} className="text-slate-400 hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <form onSubmit={handleStatusUpdate} className="space-y-4">
+                <div className="bg-white/5 rounded-lg p-4 mb-4 border border-white/10">
+                  <p className="text-white font-medium">{employeeToUpdateStatus.firstName} {employeeToUpdateStatus.lastName}</p>
+                  <p className="text-sm text-slate-400">{employeeToUpdateStatus.jobTitle}</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-400 mb-1">New Status</label>
+                  <select
+                    value={statusUpdate.status}
+                    onChange={(e) => setStatusUpdate({...statusUpdate, status: e.target.value})}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-teal"
+                  >
+                    <option value="TERMINATED">Terminated</option>
+                    <option value="RESIGNED">Resigned</option>
+                    <option value="ON_LEAVE">On Leave</option>
+                    <option value="ACTIVE">Active</option>
+                  </select>
+                </div>
+
+                {(statusUpdate.status === 'TERMINATED' || statusUpdate.status === 'RESIGNED') && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-400 mb-1">Exit Date</label>
+                    <input
+                      type="date"
+                      value={statusUpdate.exitDate}
+                      onChange={(e) => setStatusUpdate({...statusUpdate, exitDate: e.target.value})}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-teal"
+                    />
+                  </div>
+                )}
+
+                <div className="pt-4 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsStatusModalOpen(false)}
+                    className="px-4 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-lg bg-gradient-to-r from-brand-teal to-brand-purple text-white font-medium hover:opacity-90 transition-opacity"
+                  >
+                    Update Status
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Delete Confirmation Modal */}
       <AnimatePresence>
         {isDeleteModalOpen && employeeToDelete && (
@@ -321,6 +472,7 @@ const Employees = () => {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               className="w-full max-w-md bg-midnight-900 border border-white/10 rounded-2xl p-6 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold text-white">Delete Employee</h2>
@@ -436,24 +588,47 @@ const Employees = () => {
                     <td className="py-4 text-slate-300">{employee.location}</td>
                     <td className="py-4 text-slate-300">{employee.startDate}</td>
                     <td className="py-4">
-                      <span className="px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs border border-emerald-500/20">
-                        Active
-                      </span>
+                      {getStatusBadge(employee.status)}
                     </td>
                     <td className="py-4 pr-4 text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="relative inline-block text-left">
                         <button 
-                          onClick={() => handleEditClick(employee)}
+                          onClick={(e) => toggleMenu(employee.id, e)}
                           className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
                         >
-                          <Edit2 className="w-4 h-4" />
+                          <MoreVertical className="w-4 h-4" />
                         </button>
-                        <button 
-                          onClick={() => handleDeleteClick(employee)}
-                          className="p-2 rounded-lg hover:bg-red-500/10 text-slate-400 hover:text-red-400 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        
+                        {activeMenu === employee.id && (
+                          <div className="absolute right-0 top-full mt-2 w-40 bg-midnight-800 border border-white/10 rounded-lg shadow-xl z-10 overflow-hidden">
+                            <button 
+                              onClick={(e) => handleEditClick(employee, e)}
+                              className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-white flex items-center gap-2"
+                            >
+                              <Edit2 className="w-3 h-3" /> Edit Profile
+                            </button>
+                            {employee.status === 'ACTIVE' && (
+                              <button 
+                                onClick={(e) => handleAddToTeam(employee, e)}
+                                className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-white flex items-center gap-2"
+                              >
+                                <Shield className="w-3 h-3" /> Add to Admin Team
+                              </button>
+                            )}
+                            <button 
+                              onClick={(e) => handleStatusClick(employee, e)}
+                              className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-white flex items-center gap-2"
+                            >
+                              <UserMinus className="w-3 h-3" /> Change Status
+                            </button>
+                            <button 
+                              onClick={(e) => handleDeleteClick(employee, e)}
+                              className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-2"
+                            >
+                              <Trash2 className="w-3 h-3" /> Delete
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </td>
                   </motion.tr>

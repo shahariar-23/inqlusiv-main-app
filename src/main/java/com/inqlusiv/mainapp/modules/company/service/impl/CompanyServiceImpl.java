@@ -1,18 +1,24 @@
 package com.inqlusiv.mainapp.modules.company.service.impl;
 
+import com.inqlusiv.mainapp.modules.company.dto.CompanySettingsDTO;
 import com.inqlusiv.mainapp.modules.company.dto.CompanySetupRequest;
 import com.inqlusiv.mainapp.modules.company.entity.Company;
 import com.inqlusiv.mainapp.modules.company.entity.CompanySettings;
+import com.inqlusiv.mainapp.modules.company.entity.CompanyUser;
 import com.inqlusiv.mainapp.modules.company.entity.Department;
 import com.inqlusiv.mainapp.modules.company.entity.SetupStatus;
 import com.inqlusiv.mainapp.modules.company.repository.CompanyRepository;
+import com.inqlusiv.mainapp.modules.company.repository.CompanyUserRepository;
 import com.inqlusiv.mainapp.modules.company.service.CompanyService;
 import com.inqlusiv.mainapp.modules.employee.entity.Employee;
 import com.inqlusiv.mainapp.modules.employee.repository.EmployeeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,6 +33,9 @@ public class CompanyServiceImpl implements CompanyService {
     
     @Autowired
     private EmployeeRepository employeeRepository;
+
+    @Autowired
+    private CompanyUserRepository companyUserRepository;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -135,5 +144,121 @@ public class CompanyServiceImpl implements CompanyService {
             // Ignore if we can't reset auto_increment (e.g. permissions)
             System.err.println("Could not reset AUTO_INCREMENT: " + e.getMessage());
         }
+    }
+
+    @Override
+    public CompanySettingsDTO getCompanySettings(Long companyId) {
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new RuntimeException("Company not found"));
+
+        List<CompanyUser> admins = companyUserRepository.findByCompanyId(companyId);
+        List<CompanySettingsDTO.AdminUserDTO> adminDTOs = admins.stream()
+                .map(admin -> CompanySettingsDTO.AdminUserDTO.builder()
+                        .id(admin.getId())
+                        .fullName(admin.getFullName())
+                        .email(admin.getEmail())
+                        .role(admin.getRole())
+                        .status(admin.getStatus())
+                        .lastActive(admin.getLastActive() != null ? admin.getLastActive().toString() : "Never")
+                        .build())
+                .collect(Collectors.toList());
+
+        return CompanySettingsDTO.builder()
+                .companyName(company.getName())
+                .industry(company.getIndustry())
+                .logoUrl(company.getLogoUrl())
+                .admins(adminDTOs)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public void updateCompanySettings(Long companyId, CompanySettingsDTO settingsDTO) {
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new RuntimeException("Company not found"));
+
+        if (settingsDTO.getCompanyName() != null) {
+            company.setName(settingsDTO.getCompanyName());
+        }
+        if (settingsDTO.getIndustry() != null) {
+            company.setIndustry(settingsDTO.getIndustry());
+        }
+        
+        companyRepository.save(company);
+    }
+
+    @Override
+    @Transactional
+    public String updateCompanyLogo(Long companyId, MultipartFile file) {
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new RuntimeException("Company not found"));
+
+        // In a real app, upload to S3/Cloudinary. Here we mock it.
+        String encodedName = URLEncoder.encode(company.getName(), StandardCharsets.UTF_8);
+        String mockUrl = "https://ui-avatars.com/api/?name=" + encodedName + "&background=random";
+        
+        // If we could actually save the file, we would do it here.
+        // For now, let's just pretend we did and return a generated avatar based on the name.
+        
+        company.setLogoUrl(mockUrl);
+        companyRepository.save(company);
+        
+        return mockUrl;
+    }
+
+    @Override
+    @Transactional
+    public void inviteAdmin(Long companyId, String email, String role, String fullName) {
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new RuntimeException("Company not found"));
+
+        if (companyUserRepository.findByEmail(email).isPresent()) {
+            throw new RuntimeException("User with this email already exists");
+        }
+
+        CompanyUser newAdmin = CompanyUser.builder()
+                .email(email)
+                .role(role)
+                .company(company)
+                .status("Pending") // Invite sent
+                .fullName(fullName != null && !fullName.isEmpty() ? fullName : "Invited User")
+                .build();
+
+        companyUserRepository.save(newAdmin);
+        
+        // In a real app, send email here.
+    }
+
+    @Override
+    @Transactional
+    public void updateAdminUser(Long companyId, Long userId, String role, String status) {
+        CompanyUser user = companyUserRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        if (!user.getCompany().getId().equals(companyId)) {
+            throw new RuntimeException("User does not belong to this company");
+        }
+
+        if (role != null) {
+            user.setRole(role);
+        }
+        if (status != null) {
+            user.setStatus(status);
+        }
+        
+        companyUserRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public void deleteAdminUser(Long companyId, Long userId) {
+        CompanyUser user = companyUserRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        if (!user.getCompany().getId().equals(companyId)) {
+            throw new RuntimeException("User does not belong to this company");
+        }
+
+        companyUserRepository.delete(user);
     }
 }

@@ -18,6 +18,8 @@ public class EmployeeDTO {
     private String gender;
     private java.time.LocalDate startDate;
     private String location;
+    private String status;
+    private java.time.LocalDate exitDate;
     private Long departmentId;
     private String departmentName;
 }

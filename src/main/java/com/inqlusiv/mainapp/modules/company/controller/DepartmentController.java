@@ -39,4 +39,26 @@ public class DepartmentController {
         Long companyId = extractCompanyId(token);
         return ResponseEntity.ok(departmentService.createDepartment(companyId, dto));
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<DepartmentDTO> updateDepartment(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Long id,
+            @RequestBody DepartmentDTO dto) {
+        Long companyId = extractCompanyId(token);
+        return ResponseEntity.ok(departmentService.updateDepartment(companyId, id, dto));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteDepartment(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Long id) {
+        Long companyId = extractCompanyId(token);
+        try {
+            departmentService.deleteDepartment(companyId, id);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }

@@ -54,6 +54,19 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.updateEmployee(companyId, id, dto));
     }
 
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<EmployeeDTO> updateEmployeeStatus(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Long id,
+            @RequestBody java.util.Map<String, Object> payload) {
+        Long companyId = extractCompanyId(token);
+        String status = (String) payload.get("status");
+        String exitDateStr = (String) payload.get("exitDate");
+        java.time.LocalDate exitDate = exitDateStr != null ? java.time.LocalDate.parse(exitDateStr) : null;
+        
+        return ResponseEntity.ok(employeeService.updateEmployeeStatus(companyId, id, status, exitDate));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteEmployee(
             @RequestHeader("Authorization") String token,

@@ -5,6 +5,7 @@ import DashboardLayout from './layouts/DashboardLayout';
 import DashboardHome from './pages/Dashboard/DashboardHome';
 import Employees from './pages/Dashboard/Employees';
 import Departments from './pages/Dashboard/Departments';
+import Settings from './pages/Dashboard/Settings';
 
 function App() {
   return (
@@ -54,7 +55,7 @@ function App() {
           path="/dashboard/settings" 
           element={
             <DashboardLayout>
-              <div className="text-white p-8">Settings Page (Coming Soon)</div>
+              <Settings />
             </DashboardLayout>
           } 
         />
