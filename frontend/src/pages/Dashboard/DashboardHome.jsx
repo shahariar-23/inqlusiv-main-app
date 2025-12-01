@@ -1,13 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import { 
   Users, 
   TrendingUp, 
   Briefcase, 
   Award, 
   Download, 
-  ArrowUpRight 
+  ArrowUpRight,
+  Loader2
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -25,12 +28,34 @@ import {
   Legend
 } from 'recharts';
 
+const TIPS = [
+  "Regular 1:1 meetings increase employee retention by up to 30%.",
+  "Diverse teams are 35% more likely to outperform their competitors.",
+  "Use the 'Departments' tab to balance headcount across teams.",
+  "Schedule quarterly reviews to keep alignment with company goals.",
+  "Check the 'Analytics' page for deep dives into tenure trends.",
+  "Recognize employee achievements publicly to boost morale.",
+  "Ensure job descriptions use inclusive language to attract diverse talent.",
+  "Promote internal mobility to keep high performers engaged."
+];
+
 const DashboardHome = () => {
+  const dashboardRef = useRef(null);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [currentTip, setCurrentTip] = useState('');
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   useEffect(() => {
+    // Set random tip initially
+    setCurrentTip(TIPS[Math.floor(Math.random() * TIPS.length)]);
+
+    // Cycle tips every 10 seconds
+    const intervalId = setInterval(() => {
+      setCurrentTip(TIPS[Math.floor(Math.random() * TIPS.length)]);
+    }, 10000);
+
     const fetchStats = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -46,7 +71,55 @@ const DashboardHome = () => {
     };
 
     fetchStats();
+
+    return () => clearInterval(intervalId);
   }, []);
+
+  const handleDownloadReport = async () => {
+    if (!dashboardRef.current) return;
+    setIsGeneratingPdf(true);
+
+    try {
+      // Capture the dashboard container
+      const canvas = await html2canvas(dashboardRef.current, {
+        scale: 2, // Higher resolution
+        backgroundColor: '#020617', // Match bg-midnight-950
+        useCORS: true,
+        logging: false
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      
+      // Calculate dimensions to fit width
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = imgWidth / pdfWidth;
+      const scaledHeight = imgHeight / ratio;
+
+      // Add Header
+      pdf.setFillColor(2, 6, 23); // Dark background for header
+      pdf.rect(0, 0, pdfWidth, 20, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(16);
+      pdf.text('Inqlusiv Dashboard Report', 10, 13);
+      pdf.setFontSize(10);
+      pdf.text(`Generated: ${new Date().toLocaleDateString()}`, pdfWidth - 10, 13, { align: 'right' });
+
+      // Add Image (split into pages if too long, but for now just one page fit or cut)
+      // For a simple dashboard snapshot, we'll just place it below the header
+      pdf.addImage(imgData, 'PNG', 0, 25, pdfWidth, scaledHeight);
+
+      pdf.save(`Inqlusiv_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error("PDF Generation failed:", error);
+      alert("Failed to generate report. Please try again.");
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
 
   if (loading) {
     return <div className="text-white text-center mt-20">Loading Dashboard...</div>;
@@ -146,6 +219,7 @@ const DashboardHome = () => {
 
   return (
     <motion.div 
+      ref={dashboardRef}
       variants={containerVariants}
       initial="hidden"
       animate="show"
@@ -161,9 +235,13 @@ const DashboardHome = () => {
             Here is your workforce overview for <span className="text-slate-200 font-medium">{currentDate}</span>.
           </p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 text-slate-300 hover:bg-white/5 hover:text-white transition-colors text-sm font-medium">
-          <Download className="w-4 h-4" />
-          Download Report
+        <button 
+          onClick={handleDownloadReport}
+          disabled={isGeneratingPdf}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 text-slate-300 hover:bg-white/5 hover:text-white transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isGeneratingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+          {isGeneratingPdf ? 'Generating...' : 'Download Report'}
         </button>
       </motion.div>
 
@@ -329,7 +407,7 @@ const DashboardHome = () => {
             </div>
             <h3 className="text-white font-display font-semibold text-lg mb-2">Pro Tip</h3>
             <p className="text-slate-400 text-sm">
-                Schedule your weekly team syncs directly from the calendar view to boost engagement.
+                {currentTip}
             </p>
         </div>
       </motion.div>
