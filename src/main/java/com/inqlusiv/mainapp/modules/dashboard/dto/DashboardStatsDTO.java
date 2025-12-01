@@ -20,4 +20,5 @@ public class DashboardStatsDTO {
     private long openRoles;
     private String retentionRate;
     private List<String> recentActivities;
+    private List<String> tips;
 }

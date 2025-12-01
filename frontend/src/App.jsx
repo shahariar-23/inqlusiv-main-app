@@ -7,6 +7,8 @@ import Employees from './pages/Dashboard/Employees';
 import Departments from './pages/Dashboard/Departments';
 import Settings from './pages/Dashboard/Settings';
 import Analytics from './pages/Dashboard/Analytics';
+import Surveys from './pages/Dashboard/Surveys';
+import SurveyBuilder from './pages/Dashboard/SurveyBuilder';
 
 function App() {
   return (
@@ -48,6 +50,24 @@ function App() {
           element={
             <DashboardLayout>
               <Analytics />
+            </DashboardLayout>
+          } 
+        />
+
+        <Route 
+          path="/dashboard/surveys" 
+          element={
+            <DashboardLayout>
+              <Surveys />
+            </DashboardLayout>
+          } 
+        />
+
+        <Route 
+          path="/dashboard/surveys/new" 
+          element={
+            <DashboardLayout>
+              <SurveyBuilder />
             </DashboardLayout>
           } 
         />

@@ -9,7 +9,8 @@ import {
   LogOut, 
   Search, 
   Bell, 
-  Zap 
+  Zap,
+  ClipboardList
 } from 'lucide-react';
 
 const DashboardLayout = ({ children }) => {
@@ -28,6 +29,7 @@ const DashboardLayout = ({ children }) => {
     { icon: Users, label: 'Employees', path: '/dashboard/employees' },
     { icon: Building2, label: 'Departments', path: '/dashboard/departments' },
     { icon: BarChart3, label: 'Analytics', path: '/dashboard/analytics' },
+    { icon: ClipboardList, label: 'Surveys', path: '/dashboard/surveys' },
     { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
   ];
 

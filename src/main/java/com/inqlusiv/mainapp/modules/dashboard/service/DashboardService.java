@@ -20,6 +20,9 @@ public class DashboardService {
     @Autowired
     private DepartmentRepository departmentRepository;
 
+    @Autowired
+    private RecommendationService recommendationService;
+
     public DashboardStatsDTO getStats(Long companyId) {
         long activeCount = employeeRepository.countByCompanyIdAndStatusOrNull(companyId, EmployeeStatus.ACTIVE);
         long onLeaveCount = employeeRepository.countByCompanyIdAndStatus(companyId, EmployeeStatus.ON_LEAVE);
@@ -65,7 +68,7 @@ public class DashboardService {
             "System maintenance scheduled"
         );
 
-        return DashboardStatsDTO.builder()
+        DashboardStatsDTO stats = DashboardStatsDTO.builder()
                 .totalEmployees(currentHeadcount)
                 .totalDepartments(totalDepartments)
                 .genderDistribution(genderDistribution)
@@ -74,5 +77,9 @@ public class DashboardService {
                 .retentionRate(retentionRate)
                 .recentActivities(recentActivities)
                 .build();
+
+        stats.setTips(recommendationService.generateSmartTips(stats));
+
+        return stats;
     }
 }

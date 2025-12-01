@@ -48,13 +48,8 @@ const DashboardHome = () => {
   const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   useEffect(() => {
-    // Set random tip initially
+    // Set random tip initially from fallback
     setCurrentTip(TIPS[Math.floor(Math.random() * TIPS.length)]);
-
-    // Cycle tips every 10 seconds
-    const intervalId = setInterval(() => {
-      setCurrentTip(TIPS[Math.floor(Math.random() * TIPS.length)]);
-    }, 10000);
 
     const fetchStats = async () => {
       try {
@@ -63,6 +58,11 @@ const DashboardHome = () => {
           headers: { Authorization: `Bearer ${token}` }
         });
         setStats(response.data);
+        
+        // If we got tips from the backend, use one of them immediately
+        if (response.data.tips && response.data.tips.length > 0) {
+             setCurrentTip(response.data.tips[Math.floor(Math.random() * response.data.tips.length)]);
+        }
       } catch (error) {
         console.error("Error fetching dashboard stats", error);
       } finally {
@@ -71,9 +71,17 @@ const DashboardHome = () => {
     };
 
     fetchStats();
-
-    return () => clearInterval(intervalId);
   }, []);
+
+  // Cycle tips every 10 seconds
+  useEffect(() => {
+      const intervalId = setInterval(() => {
+          const sourceTips = (stats && stats.tips && stats.tips.length > 0) ? stats.tips : TIPS;
+          setCurrentTip(sourceTips[Math.floor(Math.random() * sourceTips.length)]);
+      }, 10000);
+      
+      return () => clearInterval(intervalId);
+  }, [stats]);
 
   const handleDownloadReport = async () => {
     if (!dashboardRef.current) return;
