@@ -34,6 +34,9 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     @Query("SELECT e FROM Employee e LEFT JOIN e.department d WHERE e.company.id = :companyId AND (LOWER(e.firstName) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(e.lastName) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(e.email) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(d.name) LIKE LOWER(CONCAT('%', :search, '%')))")
     Page<Employee> searchByCompanyIdGlobal(@Param("companyId") Long companyId, @Param("search") String search, Pageable pageable);
 
+    @Query("SELECT e FROM Employee e WHERE e.company.id = :companyId AND e.department.id = :departmentId AND (LOWER(e.firstName) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(e.lastName) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(e.email) LIKE LOWER(CONCAT('%', :search, '%')))")
+    Page<Employee> searchByCompanyIdAndDepartmentId(@Param("companyId") Long companyId, @Param("departmentId") Long departmentId, @Param("search") String search, Pageable pageable);
+
     @Query("SELECT e.gender, COUNT(e) FROM Employee e WHERE e.company.id = :companyId GROUP BY e.gender")
     List<Object[]> countEmployeesByGender(@Param("companyId") Long companyId);
 

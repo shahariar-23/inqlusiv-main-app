@@ -8,6 +8,9 @@ import com.inqlusiv.mainapp.modules.company.entity.Company;
 import com.inqlusiv.mainapp.modules.company.repository.CompanyRepository;
 import com.inqlusiv.mainapp.modules.company.entity.Department;
 import com.inqlusiv.mainapp.modules.company.repository.DepartmentRepository;
+import com.inqlusiv.mainapp.modules.employee.entity.Employee;
+import com.inqlusiv.mainapp.modules.employee.entity.EmployeeStatus;
+import com.inqlusiv.mainapp.modules.employee.repository.EmployeeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +36,9 @@ public class UserController {
 
     @Autowired
     private DepartmentRepository departmentRepository;
+
+    @Autowired
+    private EmployeeRepository employeeRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -132,48 +138,57 @@ public class UserController {
 
             String[] parts = cleanToken.split("-");
             // Format: mock-jwt-token-{companyId}-{role}-{userId}
+            Long companyId = Long.parseLong(parts[3]);
             Long userId = Long.parseLong(parts[5]);
             String roleStr = parts.length >= 5 ? parts[4] : "EMPLOYEE";
 
             // 2. Check Role
-            if (!"DEPT_MANAGER".equals(roleStr)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Only Department Managers can view their team");
+            if (!"DEPT_MANAGER".equals(roleStr) && !"COMPANY_ADMIN".equals(roleStr)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Only Department Managers and Admins can view their team");
             }
 
-            // 3. Get Manager's Department
-            Optional<User> managerOpt = userRepository.findById(userId);
-            if (managerOpt.isEmpty()) {
+            // 3. Get User Details
+            Optional<User> userOpt = userRepository.findById(userId);
+            if (userOpt.isEmpty()) {
                 return ResponseEntity.notFound().build();
             }
-            User manager = managerOpt.get();
+            User currentUser = userOpt.get();
             
-            if (manager.getDepartmentId() == null) {
+            List<Employee> teamMembers;
+            String departmentName;
+
+            if (currentUser.getDepartmentId() != null) {
+                // If user has a department, show that department's employees
+                teamMembers = employeeRepository.findByCompanyIdAndDepartmentId(companyId, currentUser.getDepartmentId());
+                Optional<Department> deptOpt = departmentRepository.findById(currentUser.getDepartmentId());
+                departmentName = deptOpt.map(Department::getName).orElse("Unknown Department");
+            } else if ("COMPANY_ADMIN".equals(roleStr)) {
+                // If Admin has no department, show ALL company employees
+                teamMembers = employeeRepository.findByCompanyId(companyId);
+                departmentName = "All Company Employees";
+            } else {
                 return ResponseEntity.badRequest().body("Manager is not assigned to a department");
             }
 
-            // 4. Get Department Name
-            String departmentName = "Unknown Department";
-            Optional<Department> deptOpt = departmentRepository.findById(manager.getDepartmentId());
-            if (deptOpt.isPresent()) {
-                departmentName = deptOpt.get().getName();
-            }
-
-            // 5. Fetch Team Members and Mock Status
-            List<User> teamMembers = userRepository.findByDepartmentId(manager.getDepartmentId());
+            // 4. Build Response
             List<Map<String, Object>> response = new ArrayList<>();
-            Random random = new Random();
-            String[] statuses = {"Completed", "Pending", "Not Started"};
-
-            for (User user : teamMembers) {
-                if (user.getId().equals(userId)) continue; // Exclude self
+            
+            for (Employee emp : teamMembers) {
+                // Skip if the employee is the current user (by email)
+                if (emp.getEmail().equalsIgnoreCase(currentUser.getEmail())) continue;
 
                 Map<String, Object> userMap = new HashMap<>();
-                userMap.put("id", user.getId());
-                userMap.put("fullName", user.getFullName());
-                userMap.put("email", user.getEmail());
-                userMap.put("role", user.getRole());
+                userMap.put("id", emp.getId());
+                userMap.put("fullName", emp.getFirstName() + " " + emp.getLastName());
+                userMap.put("email", emp.getEmail());
+                userMap.put("role", emp.getJobTitle() != null ? emp.getJobTitle() : "EMPLOYEE");
                 userMap.put("departmentName", departmentName);
-                userMap.put("status", statuses[random.nextInt(statuses.length)]);
+                
+                String status = "Not Started";
+                if (emp.getStatus() == EmployeeStatus.ACTIVE) status = "Completed";
+                else if (emp.getStatus() == EmployeeStatus.ON_LEAVE) status = "Pending";
+                
+                userMap.put("status", status);
                 
                 response.add(userMap);
             }
@@ -183,6 +198,60 @@ public class UserController {
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError().body("Error fetching team: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getUserById(@RequestHeader("Authorization") String token, @PathVariable Long id) {
+        try {
+            // 1. Validate Token
+            String cleanToken = token.replace("Bearer ", "");
+            if (!cleanToken.startsWith("mock-jwt-token-")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token");
+            }
+            
+            // 2. Handle Company Admin (ID 0)
+            if (id == 0) {
+                 String[] parts = cleanToken.split("-");
+                 Long companyId = Long.parseLong(parts[3]);
+                 Optional<Company> companyOpt = companyRepository.findById(companyId);
+                 if (companyOpt.isPresent()) {
+                     Company company = companyOpt.get();
+                     Map<String, Object> response = new HashMap<>();
+                     response.put("id", 0L);
+                     response.put("fullName", company.getName());
+                     response.put("email", company.getEmail());
+                     response.put("role", Role.COMPANY_ADMIN);
+                     response.put("companyId", companyId);
+                     return ResponseEntity.ok(response);
+                 }
+            }
+
+            // 3. Find User
+            Optional<User> userOpt = userRepository.findById(id);
+            if (userOpt.isPresent()) {
+                User user = userOpt.get();
+                
+                Map<String, Object> response = new HashMap<>();
+                response.put("id", user.getId());
+                response.put("fullName", user.getFullName());
+                response.put("email", user.getEmail());
+                response.put("role", user.getRole());
+                response.put("companyId", user.getCompanyId());
+                response.put("departmentId", user.getDepartmentId());
+                response.put("isActive", user.getIsActive());
+                
+                if (user.getDepartmentId() != null) {
+                    departmentRepository.findById(user.getDepartmentId())
+                        .ifPresent(dept -> response.put("departmentName", dept.getName()));
+                }
+                
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error fetching user");
         }
     }
 

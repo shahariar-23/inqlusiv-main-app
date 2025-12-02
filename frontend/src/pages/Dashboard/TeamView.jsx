@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useSearchParams } from 'react-router-dom';
 import { 
   Users, 
   Mail, 
@@ -7,19 +8,29 @@ import {
   Clock,
   AlertCircle,
   Search,
-  Send
+  Send,
+  Filter
 } from 'lucide-react';
 
 const TeamView = () => {
+  const [searchParams] = useSearchParams();
   const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
+  const [statusFilter, setStatusFilter] = useState('All');
   const [departmentName, setDepartmentName] = useState('My Department');
 
   useEffect(() => {
     fetchTeam();
   }, []);
+
+  useEffect(() => {
+    const querySearch = searchParams.get('search');
+    if (querySearch) {
+      setSearchTerm(querySearch);
+    }
+  }, [searchParams]);
 
   const fetchTeam = async () => {
     try {
@@ -45,10 +56,14 @@ const TeamView = () => {
     alert(`Reminder sent to ${member.fullName} (${member.email})!`);
   };
 
-  const filteredMembers = teamMembers.filter(member => 
-    member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (member.fullName && member.fullName.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredMembers = teamMembers.filter(member => {
+    const matchesSearch = member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (member.fullName && member.fullName.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchesStatus = statusFilter === 'All' || member.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
 
   // Stats Calculation
   const totalMembers = teamMembers.length;
@@ -119,16 +134,37 @@ const TeamView = () => {
 
       {/* Search & Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="p-4 border-b border-gray-200 flex items-center gap-4">
-          <div className="relative flex-1 max-w-md">
+        <div className="p-4 border-b border-gray-200 flex flex-col sm:flex-row items-center gap-4">
+          <div className="relative flex-1 max-w-md w-full">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input 
               type="text"
               placeholder="Search team members..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all bg-white text-gray-900 placeholder-gray-400"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
+          </div>
+          
+          <div className="relative w-full sm:w-auto">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Filter className="h-4 w-4 text-gray-400" />
+            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="pl-10 pr-8 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all appearance-none bg-white text-gray-900 w-full sm:w-48 cursor-pointer"
+            >
+              <option value="All">All Statuses</option>
+              <option value="Completed">Completed</option>
+              <option value="Pending">Pending</option>
+              <option value="Not Started">Not Started</option>
+            </select>
+            <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </div>
           </div>
         </div>
 

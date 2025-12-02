@@ -10,5 +10,6 @@ import java.util.List;
 public interface DepartmentRepository extends JpaRepository<Department, Long> {
     long countByCompanyId(Long companyId);
     
-    List<Department> findByCompanyId(Long companyId);
+    @org.springframework.data.jpa.repository.Query("SELECT d FROM Department d WHERE d.company.id = :companyId")
+    List<Department> findByCompanyId(@org.springframework.data.repository.query.Param("companyId") Long companyId);
 }

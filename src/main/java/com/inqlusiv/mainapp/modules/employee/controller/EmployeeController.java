@@ -34,6 +34,21 @@ public class EmployeeController {
         return Long.parseLong(cleanToken.replace("mock-jwt-token-", ""));
     }
 
+    private Long extractUserId(String token) {
+        if (token == null || !token.startsWith("Bearer ")) return null;
+        String cleanToken = token.replace("Bearer ", "");
+        String[] parts = cleanToken.split("-");
+        // Format: mock-jwt-token-{companyId}-{role}-{userId}
+        if (parts.length >= 6) {
+            try {
+                return Long.parseLong(parts[5]);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
     @GetMapping
     public ResponseEntity<Page<EmployeeDTO>> getAllEmployees(
             @RequestHeader("Authorization") String token,
@@ -42,7 +57,8 @@ public class EmployeeController {
             @RequestParam(required = false, defaultValue = "basic") String scope,
             Pageable pageable) {
         Long companyId = extractCompanyId(token);
-        return ResponseEntity.ok(employeeService.getAllEmployees(companyId, search, departmentId, scope, pageable));
+        Long userId = extractUserId(token);
+        return ResponseEntity.ok(employeeService.getAllEmployees(companyId, search, departmentId, scope, userId, pageable));
     }
 
     @PostMapping

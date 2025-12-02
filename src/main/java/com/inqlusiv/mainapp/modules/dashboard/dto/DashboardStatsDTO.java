@@ -23,4 +23,5 @@ public class DashboardStatsDTO {
     private List<String> recentActivities;
     private List<String> tips;
     private List<String> smartTips;
+    private List<Map<String, Object>> headcountTrend;
 }

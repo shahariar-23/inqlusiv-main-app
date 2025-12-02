@@ -1,5 +1,7 @@
 package com.inqlusiv.mainapp.modules.employee.service;
 
+import com.inqlusiv.mainapp.modules.auth.entity.User;
+import com.inqlusiv.mainapp.modules.auth.repository.UserRepository;
 import com.inqlusiv.mainapp.modules.company.entity.Company;
 import com.inqlusiv.mainapp.modules.company.entity.Department;
 import com.inqlusiv.mainapp.modules.company.repository.CompanyRepository;
@@ -26,11 +28,25 @@ public class EmployeeService {
     @Autowired
     private CompanyRepository companyRepository;
 
-    public Page<EmployeeDTO> getAllEmployees(Long companyId, String search, Long departmentId, String scope, Pageable pageable) {
+    @Autowired
+    private UserRepository userRepository;
+
+    public Page<EmployeeDTO> getAllEmployees(Long companyId, String search, Long departmentId, String scope, Long userId, Pageable pageable) {
         Page<Employee> employees;
+        
+        // If scope is department, try to resolve department from user if not provided
+        if ("department".equalsIgnoreCase(scope) && userId != null) {
+             User user = userRepository.findById(userId).orElse(null);
+             if (user != null && user.getDepartmentId() != null) {
+                 departmentId = user.getDepartmentId();
+             }
+        }
+
         if (search != null && !search.trim().isEmpty()) {
             if ("global".equalsIgnoreCase(scope)) {
                 employees = employeeRepository.searchByCompanyIdGlobal(companyId, search, pageable);
+            } else if (departmentId != null) {
+                employees = employeeRepository.searchByCompanyIdAndDepartmentId(companyId, departmentId, search, pageable);
             } else {
                 employees = employeeRepository.searchByCompanyId(companyId, search, pageable);
             }

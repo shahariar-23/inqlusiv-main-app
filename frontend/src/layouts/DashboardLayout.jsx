@@ -18,11 +18,34 @@ const DashboardLayout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const [user, setUser] = useState(null);
   const userRole = localStorage.getItem('role') || 'EMPLOYEE';
+
+  React.useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      const parts = token.split('-');
+      // Robustly extract userId (last part of the token)
+      const userId = parts[parts.length - 1];
+      
+      if (userId && !isNaN(userId)) {
+        fetch(`http://localhost:8080/api/users/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        .then(res => res.json())
+        .then(data => setUser(data))
+        .catch(err => console.error("Failed to fetch user info", err));
+      }
+    }
+  }, []);
 
   const handleSearch = (e) => {
     if (e.key === 'Enter') {
-      navigate(`/dashboard/employees?search=${encodeURIComponent(searchQuery)}&scope=global`);
+      if (userRole === 'DEPT_MANAGER') {
+        navigate(`/dashboard/team?search=${encodeURIComponent(searchQuery)}`);
+      } else {
+        navigate(`/dashboard/employees?search=${encodeURIComponent(searchQuery)}&scope=global`);
+      }
     }
   };
 
@@ -128,11 +151,11 @@ const DashboardLayout = ({ children }) => {
         <div className="p-4 border-t border-white/5">
           <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group">
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-teal to-brand-purple flex items-center justify-center text-xs font-bold text-white">
-              AD
+              {user ? user.fullName.charAt(0).toUpperCase() : 'U'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">Admin User</p>
-              <p className="text-xs text-slate-500 truncate">admin@inqlusiv.io</p>
+              <p className="text-sm font-medium text-white truncate">{user ? user.fullName : 'User'}</p>
+              <p className="text-xs text-slate-500 truncate">{user ? user.email : 'Loading...'}</p>
             </div>
             <LogOut className="w-4 h-4 text-slate-500 group-hover:text-white transition-colors" />
           </div>
@@ -148,7 +171,7 @@ const DashboardLayout = ({ children }) => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input 
               type="text" 
-              placeholder="Search employee or department..." 
+              placeholder={userRole === 'DEPT_MANAGER' ? "Search my team..." : "Search employee or department..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleSearch}

@@ -46,6 +46,8 @@ const DashboardHome = () => {
   const dashboardRef = useRef(null);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const userRole = localStorage.getItem('role') || 'EMPLOYEE';
   const [currentTip, setCurrentTip] = useState('');
   const [displayedTip, setDisplayedTip] = useState('');
   const [tipCategory, setTipCategory] = useState({ 
@@ -73,6 +75,26 @@ const DashboardHome = () => {
         if (response.data.tips && response.data.tips.length > 0) {
              setCurrentTip(response.data.tips[Math.floor(Math.random() * response.data.tips.length)]);
         }
+
+        // Fetch User Info
+        if (token) {
+            const parts = token.split('-');
+            // Robustly extract userId (last part of the token)
+            const userId = parts[parts.length - 1];
+            
+            if (userId && !isNaN(userId)) {
+                try {
+                    const userRes = await axios.get(`http://localhost:8080/api/users/${userId}`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    if (userRes.data) {
+                        setUser(userRes.data);
+                    }
+                } catch (err) {
+                    console.error("Error fetching user details:", err);
+                }
+            }
+        }
       } catch (error) {
         console.error("Error fetching dashboard stats", error);
       } finally {
@@ -81,9 +103,7 @@ const DashboardHome = () => {
     };
 
     fetchStats();
-  }, []);
-
-  // Cycle tips every 10 seconds
+  }, []);  // Cycle tips every 10 seconds
   useEffect(() => {
       const intervalId = setInterval(() => {
           const sourceTips = (stats && stats.tips && stats.tips.length > 0) ? stats.tips : TIPS;
@@ -238,20 +258,20 @@ const DashboardHome = () => {
   const STATS_CARDS = [
     { 
       id: 1, 
-      label: 'Total Employees', 
+      label: userRole === 'DEPT_MANAGER' ? 'Team Members' : 'Total Employees', 
       value: stats.totalEmployees, 
       trend: '+12% this month', 
       icon: Users, 
       color: 'text-brand-teal' 
     },
-    { 
+    ...(userRole !== 'DEPT_MANAGER' ? [{ 
       id: 2, 
       label: 'Total Departments', 
       value: stats.totalDepartments, 
       trend: 'Stable', 
       icon: Briefcase, 
       color: 'text-brand-purple' 
-    },
+    }] : []),
     // Keep placeholders for others
     { 
       id: 3, 
@@ -299,11 +319,23 @@ const DashboardHome = () => {
       <motion.div variants={itemVariants} className="flex items-end justify-between">
         <div>
           <h1 className="text-3xl font-display font-bold text-white mb-2">
-            Good morning, Admin.
+            {userRole === 'DEPT_MANAGER' ? 'Welcome back,' : 'Good morning,'} {user ? user.fullName : 'Admin'}.
           </h1>
-          <p className="text-slate-400">
-            Here is your workforce overview for <span className="text-slate-200 font-medium">{currentDate}</span>.
-          </p>
+          {userRole === 'DEPT_MANAGER' && user?.departmentName ? (
+            <div className="mt-3 flex items-center gap-3">
+              <div className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-brand-teal/20 to-brand-purple/20 border border-brand-teal/30 backdrop-blur-sm">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-teal to-brand-purple font-bold tracking-wide uppercase text-sm flex items-center gap-2">
+                  <Briefcase className="w-4 h-4 text-brand-teal" />
+                  {user.departmentName}
+                </span>
+              </div>
+              <span className="text-slate-400 text-sm">Department Overview</span>
+            </div>
+          ) : (
+            <p className="text-slate-400">
+              Here is your workforce overview for <span className="text-slate-200 font-medium">{currentDate}</span>.
+            </p>
+          )}
         </div>
         <button 
           onClick={handleDownloadReport}
@@ -406,7 +438,9 @@ const DashboardHome = () => {
           className="lg:col-span-2 p-6 rounded-2xl bg-midnight-900/60 backdrop-blur-xl border border-white/5 flex flex-col"
         >
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-display font-semibold text-white">Department Headcount</h3>
+            <h3 className="text-lg font-display font-semibold text-white">
+                {userRole === 'DEPT_MANAGER' ? 'Headcount Trend' : 'Department Headcount'}
+            </h3>
             <div className="flex gap-2">
               <select className="bg-midnight-800/50 border border-white/10 rounded-lg text-xs text-slate-300 px-3 py-1 focus:outline-none">
                 <option>This Month</option>
@@ -417,31 +451,47 @@ const DashboardHome = () => {
 
           <div style={{ width: '100%', height: 300 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={departmentData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#94a3b8', fontSize: 12 }} 
-                  dy={10}
-                />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#94a3b8', fontSize: 12 }} 
-                />
-                <Tooltip 
-                  cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                  contentStyle={{ backgroundColor: '#0f172a', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }}
-                />
-                <Bar 
-                  dataKey="count" 
-                  fill="#06B6D4" 
-                  radius={[4, 4, 0, 0]} 
-                  barSize={40}
-                />
-              </BarChart>
+              {userRole === 'DEPT_MANAGER' && stats.headcountTrend ? (
+                  <AreaChart data={stats.headcountTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#06B6D4" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                    <Tooltip cursor={{ stroke: 'rgba(255,255,255,0.1)' }} contentStyle={{ backgroundColor: '#0f172a', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }} />
+                    <Area type="monotone" dataKey="count" stroke="#06B6D4" fillOpacity={1} fill="url(#colorCount)" />
+                  </AreaChart>
+              ) : (
+                  <BarChart data={departmentData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                    <XAxis 
+                      dataKey="name" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fill: '#94a3b8', fontSize: 12 }} 
+                      dy={10}
+                    />
+                    <YAxis 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fill: '#94a3b8', fontSize: 12 }} 
+                    />
+                    <Tooltip 
+                      cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                      contentStyle={{ backgroundColor: '#0f172a', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }}
+                    />
+                    <Bar 
+                      dataKey="count" 
+                      fill="#06B6D4" 
+                      radius={[4, 4, 0, 0]} 
+                      barSize={40}
+                    />
+                  </BarChart>
+              )}
             </ResponsiveContainer>
           </div>
         </motion.div>

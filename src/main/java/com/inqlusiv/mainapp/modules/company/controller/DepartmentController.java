@@ -36,7 +36,10 @@ public class DepartmentController {
     @GetMapping
     public ResponseEntity<List<DepartmentDTO>> getAllDepartments(@RequestHeader("Authorization") String token) {
         Long companyId = extractCompanyId(token);
-        return ResponseEntity.ok(departmentService.getAllDepartments(companyId));
+        System.out.println("Fetching departments for companyId: " + companyId);
+        List<DepartmentDTO> depts = departmentService.getAllDepartments(companyId);
+        System.out.println("Found " + depts.size() + " departments");
+        return ResponseEntity.ok(depts);
     }
 
     @PostMapping

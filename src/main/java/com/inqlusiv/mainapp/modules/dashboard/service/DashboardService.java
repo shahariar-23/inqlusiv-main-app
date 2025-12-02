@@ -2,12 +2,16 @@ package com.inqlusiv.mainapp.modules.dashboard.service;
 
 import com.inqlusiv.mainapp.modules.company.repository.DepartmentRepository;
 import com.inqlusiv.mainapp.modules.dashboard.dto.DashboardStatsDTO;
+import com.inqlusiv.mainapp.modules.employee.entity.Employee;
 import com.inqlusiv.mainapp.modules.employee.entity.EmployeeStatus;
 import com.inqlusiv.mainapp.modules.employee.repository.EmployeeRepository;
 import com.inqlusiv.mainapp.modules.survey.service.SurveyService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -96,6 +100,9 @@ public class DashboardService {
         );
 
         Double sentimentScore = surveyService.getCompanySentimentScore(companyId);
+        
+        // Calculate Headcount Trend
+        List<Map<String, Object>> headcountTrend = calculateHeadcountTrend(companyId, departmentId);
 
         DashboardStatsDTO stats = DashboardStatsDTO.builder()
                 .totalEmployees(currentHeadcount)
@@ -106,10 +113,46 @@ public class DashboardService {
                 .retentionRate(retentionRate)
                 .averageSurveySentiment(sentimentScore)
                 .recentActivities(recentActivities)
+                .headcountTrend(headcountTrend)
                 .build();
 
         stats.setTips(recommendationService.generateSmartTips(stats));
 
         return stats;
+    }
+
+    private List<Map<String, Object>> calculateHeadcountTrend(Long companyId, Long departmentId) {
+        List<Map<String, Object>> trend = new ArrayList<>();
+        LocalDate now = LocalDate.now();
+        
+        List<Employee> allEmployees;
+        if (departmentId != null) {
+            allEmployees = employeeRepository.findByCompanyIdAndDepartmentId(companyId, departmentId);
+        } else {
+            allEmployees = employeeRepository.findByCompanyId(companyId);
+        }
+
+        // Calculate for last 6 months
+        for (int i = 5; i >= 0; i--) {
+            YearMonth ym = YearMonth.from(now.minusMonths(i));
+            LocalDate endOfMonth = ym.atEndOfMonth();
+            if (i == 0) endOfMonth = now; // For current month, use today
+
+            long count = 0;
+            for (Employee e : allEmployees) {
+                boolean started = e.getStartDate() != null && !e.getStartDate().isAfter(endOfMonth);
+                boolean notExited = e.getExitDate() == null || e.getExitDate().isAfter(endOfMonth);
+                
+                if (started && notExited) {
+                    count++;
+                }
+            }
+            
+            Map<String, Object> point = new HashMap<>();
+            point.put("month", ym.getMonth().name().substring(0, 3)); // Jan, Feb
+            point.put("count", count);
+            trend.add(point);
+        }
+        return trend;
     }
 }
