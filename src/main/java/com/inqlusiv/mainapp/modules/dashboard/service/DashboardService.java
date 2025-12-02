@@ -28,10 +28,46 @@ public class DashboardService {
     private SurveyService surveyService;
 
     public DashboardStatsDTO getStats(Long companyId) {
-        long activeCount = employeeRepository.countByCompanyIdAndStatusOrNull(companyId, EmployeeStatus.ACTIVE);
-        long onLeaveCount = employeeRepository.countByCompanyIdAndStatus(companyId, EmployeeStatus.ON_LEAVE);
-        long terminatedCount = employeeRepository.countByCompanyIdAndStatus(companyId, EmployeeStatus.TERMINATED);
-        long resignedCount = employeeRepository.countByCompanyIdAndStatus(companyId, EmployeeStatus.RESIGNED);
+        return getStats(companyId, null);
+    }
+
+    public DashboardStatsDTO getStats(Long companyId, Long departmentId) {
+        long activeCount;
+        long onLeaveCount;
+        long terminatedCount;
+        long resignedCount;
+        List<Object[]> genderStats;
+        Map<String, Long> departmentHeadcount = new HashMap<>();
+        long totalDepartments;
+
+        if (departmentId != null) {
+            activeCount = employeeRepository.countByDepartmentIdAndStatusOrNull(departmentId, EmployeeStatus.ACTIVE);
+            onLeaveCount = employeeRepository.countByDepartmentIdAndStatus(departmentId, EmployeeStatus.ON_LEAVE);
+            terminatedCount = employeeRepository.countByDepartmentIdAndStatus(departmentId, EmployeeStatus.TERMINATED);
+            resignedCount = employeeRepository.countByDepartmentIdAndStatus(departmentId, EmployeeStatus.RESIGNED);
+            genderStats = employeeRepository.countEmployeesByGenderAndDepartment(departmentId);
+            
+            departmentRepository.findById(departmentId).ifPresent(dept -> {
+                departmentHeadcount.put(dept.getName(), activeCount + onLeaveCount);
+            });
+            totalDepartments = 1;
+        } else {
+            activeCount = employeeRepository.countByCompanyIdAndStatusOrNull(companyId, EmployeeStatus.ACTIVE);
+            onLeaveCount = employeeRepository.countByCompanyIdAndStatus(companyId, EmployeeStatus.ON_LEAVE);
+            terminatedCount = employeeRepository.countByCompanyIdAndStatus(companyId, EmployeeStatus.TERMINATED);
+            resignedCount = employeeRepository.countByCompanyIdAndStatus(companyId, EmployeeStatus.RESIGNED);
+            genderStats = employeeRepository.countEmployeesByGender(companyId);
+            
+            List<Object[]> deptStats = employeeRepository.countEmployeesByDepartment(companyId);
+            for (Object[] result : deptStats) {
+                String deptName = (String) result[0];
+                Long count = (Long) result[1];
+                if (deptName != null) {
+                    departmentHeadcount.put(deptName, count);
+                }
+            }
+            totalDepartments = departmentRepository.countByCompanyId(companyId);
+        }
 
         long currentHeadcount = activeCount + onLeaveCount;
         long totalHistory = currentHeadcount + terminatedCount + resignedCount;
@@ -42,25 +78,12 @@ public class DashboardService {
             retentionRate = String.format("%.1f%%", rate);
         }
 
-        long totalDepartments = departmentRepository.countByCompanyId(companyId);
-
-        List<Object[]> genderStats = employeeRepository.countEmployeesByGender(companyId);
         Map<String, Long> genderDistribution = new HashMap<>();
         for (Object[] result : genderStats) {
             String gender = (String) result[0];
             Long count = (Long) result[1];
             if (gender != null) {
                 genderDistribution.put(gender, count);
-            }
-        }
-
-        List<Object[]> deptStats = employeeRepository.countEmployeesByDepartment(companyId);
-        Map<String, Long> departmentHeadcount = new HashMap<>();
-        for (Object[] result : deptStats) {
-            String deptName = (String) result[0];
-            Long count = (Long) result[1];
-            if (deptName != null) {
-                departmentHeadcount.put(deptName, count);
             }
         }
 

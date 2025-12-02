@@ -42,4 +42,13 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     List<Employee> findByCompanyId(Long companyId);
     List<Employee> findByCompanyIdAndDepartmentId(Long companyId, Long departmentId);
+
+    // New methods for Department filtering
+    long countByDepartmentIdAndStatus(Long departmentId, EmployeeStatus status);
+
+    @Query("SELECT COUNT(e) FROM Employee e WHERE e.department.id = :departmentId AND (e.status = :status OR e.status IS NULL)")
+    long countByDepartmentIdAndStatusOrNull(@Param("departmentId") Long departmentId, @Param("status") EmployeeStatus status);
+
+    @Query("SELECT e.gender, COUNT(e) FROM Employee e WHERE e.department.id = :departmentId GROUP BY e.gender")
+    List<Object[]> countEmployeesByGenderAndDepartment(@Param("departmentId") Long departmentId);
 }

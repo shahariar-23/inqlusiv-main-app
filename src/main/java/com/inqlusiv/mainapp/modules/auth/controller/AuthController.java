@@ -2,6 +2,8 @@ package com.inqlusiv.mainapp.modules.auth.controller;
 
 import com.inqlusiv.mainapp.modules.auth.dto.LoginRequest;
 import com.inqlusiv.mainapp.modules.auth.dto.LoginResponse;
+import com.inqlusiv.mainapp.modules.auth.entity.User;
+import com.inqlusiv.mainapp.modules.auth.repository.UserRepository;
 import com.inqlusiv.mainapp.modules.company.entity.Company;
 import com.inqlusiv.mainapp.modules.company.repository.CompanyRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +22,9 @@ import java.util.Optional;
 public class AuthController {
 
     @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
     private CompanyRepository companyRepository;
 
     @Autowired
@@ -27,17 +32,30 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
-        Optional<Company> companyOpt = companyRepository.findByEmail(loginRequest.getEmail());
+        // 1. Check DB for User
+        Optional<User> userOpt = userRepository.findByEmail(loginRequest.getEmail());
 
-        if (companyOpt.isPresent()) {
-            Company company = companyOpt.get();
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
             
-            if (passwordEncoder.matches(loginRequest.getPassword(), company.getPassword())) {
-                
-                String setupStatus = company.getSetupStatus() != null ? company.getSetupStatus().name() : "INCOMPLETE";
+            // Check password (support both encoded and plain text for demo)
+            boolean passwordMatch = passwordEncoder.matches(loginRequest.getPassword(), user.getPassword()) 
+                                    || loginRequest.getPassword().equals(user.getPassword());
 
-                // Mock token
-                String token = "mock-jwt-token-" + company.getId();
+            if (passwordMatch) {
+                // Fetch company for setup status
+                String setupStatus = "COMPLETE";
+                Optional<Company> companyOpt = companyRepository.findById(user.getCompanyId());
+                if (companyOpt.isPresent()) {
+                    setupStatus = companyOpt.get().getSetupStatus() != null ? companyOpt.get().getSetupStatus().name() : "INCOMPLETE";
+                }
+
+                // Generate Token: mock-jwt-token-{companyId}-{role}-{userId}
+                String token = String.format("mock-jwt-token-%d-%s-%d", 
+                        user.getCompanyId(), 
+                        user.getRole().name(), 
+                        user.getId());
+                
                 return ResponseEntity.ok(new LoginResponse(token, setupStatus));
             }
         }
