@@ -113,6 +113,50 @@ public class UserController {
         }
     }
 
+    @GetMapping("/my-team")
+    public ResponseEntity<?> getMyTeam(@RequestHeader("Authorization") String token) {
+        try {
+            // 1. Validate Token
+            String cleanToken = token.replace("Bearer ", "");
+            if (!cleanToken.startsWith("mock-jwt-token-")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token");
+            }
+
+            String[] parts = cleanToken.split("-");
+            // Format: mock-jwt-token-{companyId}-{role}-{userId}
+            Long userId = Long.parseLong(parts[5]);
+            String roleStr = parts.length >= 5 ? parts[4] : "EMPLOYEE";
+
+            // 2. Check Role
+            if (!"DEPT_MANAGER".equals(roleStr)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Only Department Managers can view their team");
+            }
+
+            // 3. Get Manager's Department
+            Optional<User> managerOpt = userRepository.findById(userId);
+            if (managerOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            User manager = managerOpt.get();
+            
+            if (manager.getDepartmentId() == null) {
+                return ResponseEntity.badRequest().body("Manager is not assigned to a department");
+            }
+
+            // 4. Fetch Team Members
+            List<User> teamMembers = userRepository.findByDepartmentId(manager.getDepartmentId()).stream()
+                    .filter(u -> !u.getId().equals(userId)) // Exclude self
+                    .peek(u -> u.setPassword(null)) // Hide passwords
+                    .toList();
+
+            return ResponseEntity.ok(teamMembers);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Error fetching team: " + e.getMessage());
+        }
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<?> updateUser(@RequestHeader("Authorization") String token, @PathVariable Long id, @RequestBody CreateUserRequest request) {
         try {

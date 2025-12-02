@@ -10,13 +10,15 @@ import {
   Search, 
   Bell, 
   Zap,
-  ClipboardList
+  ClipboardList,
+  Target
 } from 'lucide-react';
 
 const DashboardLayout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const userRole = localStorage.getItem('role') || 'EMPLOYEE';
 
   const handleSearch = (e) => {
     if (e.key === 'Enter') {
@@ -24,15 +26,64 @@ const DashboardLayout = ({ children }) => {
     }
   };
 
-  const navItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-    { icon: Users, label: 'Employees', path: '/dashboard/employees' },
-    { icon: Users, label: 'Users', path: '/dashboard/users' },
-    { icon: Building2, label: 'Departments', path: '/dashboard/departments' },
-    { icon: BarChart3, label: 'Analytics', path: '/dashboard/analytics' },
-    { icon: ClipboardList, label: 'Surveys', path: '/dashboard/surveys' },
-    { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
+  const allNavItems = [
+    { 
+      icon: LayoutDashboard, 
+      label: userRole === 'DEPT_MANAGER' ? 'Team Dashboard' : 'Dashboard', 
+      path: '/dashboard',
+      roles: ['COMPANY_ADMIN', 'HR_MANAGER', 'DEPT_MANAGER', 'EMPLOYEE']
+    },
+    { 
+      icon: Users, 
+      label: 'My Team', 
+      path: '/dashboard/team',
+      roles: ['DEPT_MANAGER']
+    },
+    { 
+      icon: Users, 
+      label: 'Employees', 
+      path: '/dashboard/employees',
+      roles: ['COMPANY_ADMIN', 'HR_MANAGER']
+    },
+    { 
+      icon: Users, 
+      label: 'Users', 
+      path: '/dashboard/users',
+      roles: ['COMPANY_ADMIN']
+    },
+    { 
+      icon: Building2, 
+      label: 'Departments', 
+      path: '/dashboard/departments',
+      roles: ['COMPANY_ADMIN', 'HR_MANAGER']
+    },
+    { 
+      icon: Target, 
+      label: 'Goals', 
+      path: '/dashboard/goals',
+      roles: ['COMPANY_ADMIN', 'HR_MANAGER', 'DEPT_MANAGER']
+    },
+    { 
+      icon: BarChart3, 
+      label: 'Analytics', 
+      path: '/dashboard/analytics',
+      roles: ['COMPANY_ADMIN', 'HR_MANAGER']
+    },
+    { 
+      icon: ClipboardList, 
+      label: 'Surveys', 
+      path: '/dashboard/surveys',
+      roles: ['COMPANY_ADMIN', 'HR_MANAGER']
+    },
+    { 
+      icon: Settings, 
+      label: 'Settings', 
+      path: '/dashboard/settings',
+      roles: ['COMPANY_ADMIN']
+    },
   ];
+
+  const navItems = allNavItems.filter(item => item.roles.includes(userRole));
 
   return (
     <div className="min-h-screen bg-midnight-950 text-slate-100 font-body selection:bg-brand-teal/30 relative overflow-hidden">
