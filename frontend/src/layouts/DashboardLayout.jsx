@@ -27,6 +27,7 @@ const DashboardLayout = ({ children }) => {
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: Users, label: 'Employees', path: '/dashboard/employees' },
+    { icon: Users, label: 'Users', path: '/dashboard/users' },
     { icon: Building2, label: 'Departments', path: '/dashboard/departments' },
     { icon: BarChart3, label: 'Analytics', path: '/dashboard/analytics' },
     { icon: ClipboardList, label: 'Surveys', path: '/dashboard/surveys' },

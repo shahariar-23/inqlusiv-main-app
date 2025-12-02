@@ -45,14 +45,7 @@ public class CompanyController {
             @RequestParam(value = "employeeFile", required = false) MultipartFile employeeFile
     ) {
         try {
-            // Extract ID from mock token "mock-jwt-token-{id}"
-            String cleanToken = token.replace("Bearer ", "");
-            if (!cleanToken.startsWith("mock-jwt-token-")) {
-                 return ResponseEntity.status(401).body("Invalid token");
-            }
-            
-            String tokenIdPart = cleanToken.replace("mock-jwt-token-", "");
-            Long companyId = Long.parseLong(tokenIdPart);
+            Long companyId = extractCompanyId(token);
             
             // Build DTO
             CompanySetupRequest request = new CompanySetupRequest();
@@ -92,13 +85,7 @@ public class CompanyController {
     @PostMapping("/reset")
     public ResponseEntity<?> resetCompanySetup(@RequestHeader("Authorization") String token) {
         try {
-            String cleanToken = token.replace("Bearer ", "");
-            if (!cleanToken.startsWith("mock-jwt-token-")) {
-                return ResponseEntity.status(401).body("Invalid token");
-            }
-
-            String tokenIdPart = cleanToken.replace("mock-jwt-token-", "");
-            Long companyId = Long.parseLong(tokenIdPart);
+            Long companyId = extractCompanyId(token);
 
             companyService.resetCompany(companyId);
 
@@ -201,6 +188,16 @@ public class CompanyController {
         if (!cleanToken.startsWith("mock-jwt-token-")) {
             throw new RuntimeException("Invalid token");
         }
-        return Long.parseLong(cleanToken.replace("mock-jwt-token-", ""));
+        
+        String tokenContent = cleanToken.replace("mock-jwt-token-", "");
+        String[] parts = tokenContent.split("-");
+        
+        // Handle new format: {companyId}-{role}-{userId}
+        if (parts.length >= 3) {
+            return Long.parseLong(parts[0]);
+        }
+        
+        // Handle old format: {companyId}
+        return Long.parseLong(tokenContent);
     }
 }

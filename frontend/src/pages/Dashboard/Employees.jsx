@@ -22,8 +22,10 @@ const Employees = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState(null);
   const [employeeToUpdateStatus, setEmployeeToUpdateStatus] = useState(null);
+  const [employeeToCreateUser, setEmployeeToCreateUser] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [activeMenu, setActiveMenu] = useState(null);
   
@@ -37,6 +39,14 @@ const Employees = () => {
     departmentId: '',
     location: '',
     startDate: ''
+  });
+
+  const [newUser, setNewUser] = useState({
+    fullName: '',
+    email: '',
+    password: '',
+    role: 'EMPLOYEE',
+    departmentId: ''
   });
 
   const [statusUpdate, setStatusUpdate] = useState({
@@ -139,6 +149,38 @@ const Employees = () => {
     } catch (error) {
       console.error("Error updating status", error);
       alert("Failed to update status");
+    }
+  };
+
+  const handleCreateUserClick = (employee, e) => {
+    e.stopPropagation();
+    setEmployeeToCreateUser(employee);
+    setNewUser({
+      fullName: `${employee.firstName} ${employee.lastName}`,
+      email: employee.email,
+      password: '',
+      role: 'EMPLOYEE',
+      departmentId: employee.departmentId || ''
+    });
+    setIsUserModalOpen(true);
+    setActiveMenu(null);
+  };
+
+  const handleCreateUserSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post('http://localhost:8080/api/users', newUser, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      setIsUserModalOpen(false);
+      setEmployeeToCreateUser(null);
+      setNewUser({ fullName: '', email: '', password: '', role: 'EMPLOYEE', departmentId: '' });
+      alert("User account created successfully!");
+    } catch (error) {
+      console.error("Error creating user", error);
+      alert(error.response?.data || "Failed to create user account");
     }
   };
 
@@ -392,6 +434,108 @@ const Employees = () => {
         )}
       </AnimatePresence>
 
+      {/* Create User Modal */}
+      <AnimatePresence>
+        {isUserModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md bg-midnight-900 border border-white/10 rounded-2xl p-6 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-white">Create User Account</h2>
+                <button onClick={() => setIsUserModalOpen(false)} className="text-slate-400 hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <form onSubmit={handleCreateUserSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-400 mb-1">Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={newUser.fullName}
+                    onChange={(e) => setNewUser({...newUser, fullName: e.target.value})}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-teal"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-400 mb-1">Email</label>
+                  <input
+                    type="email"
+                    required
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-teal"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-400 mb-1">Password</label>
+                  <input
+                    type="password"
+                    required
+                    value={newUser.password}
+                    onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-teal"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-400 mb-1">Role</label>
+                    <select
+                      value={newUser.role}
+                      onChange={(e) => setNewUser({...newUser, role: e.target.value})}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-teal"
+                    >
+                      <option value="EMPLOYEE">Employee</option>
+                      <option value="DEPT_MANAGER">Dept Manager</option>
+                      <option value="HR_MANAGER">HR Manager</option>
+                      <option value="COMPANY_ADMIN">Company Admin</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-400 mb-1">Department</label>
+                    <select
+                      value={newUser.departmentId}
+                      onChange={(e) => setNewUser({...newUser, departmentId: e.target.value})}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-teal"
+                    >
+                      <option value="">Select Dept</option>
+                      {departments.map(dept => (
+                        <option key={dept.id} value={dept.id}>{dept.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="pt-4 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsUserModalOpen(false)}
+                    className="px-4 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-lg bg-gradient-to-r from-brand-teal to-brand-purple text-white font-medium hover:opacity-90 transition-opacity"
+                  >
+                    Create User
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Status Update Modal */}
       <AnimatePresence>
         {isStatusModalOpen && employeeToUpdateStatus && (
@@ -607,12 +751,18 @@ const Employees = () => {
                             >
                               <Edit2 className="w-3 h-3" /> Edit Profile
                             </button>
+                            <button 
+                              onClick={(e) => handleCreateUserClick(employee, e)}
+                              className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-white flex items-center gap-2"
+                            >
+                              <Shield className="w-3 h-3" /> Add to Users List
+                            </button>
                             {employee.status === 'ACTIVE' && (
                               <button 
                                 onClick={(e) => handleAddToTeam(employee, e)}
                                 className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-white flex items-center gap-2"
                               >
-                                <Shield className="w-3 h-3" /> Add to Admin Team
+                                <Shield className="w-3 h-3" /> Invite to Admin Team
                               </button>
                             )}
                             <button 

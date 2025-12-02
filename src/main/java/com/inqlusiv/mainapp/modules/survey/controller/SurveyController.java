@@ -117,10 +117,15 @@ public class SurveyController {
     }
 
     private Long extractCompanyId(String token) {
-        // Extract ID from mock token "mock-jwt-token-{id}"
+        // Extract ID from mock token "mock-jwt-token-{companyId}-{role}-{userId}"
         String cleanToken = token.replace("Bearer ", "");
         if (!cleanToken.startsWith("mock-jwt-token-")) {
              throw new RuntimeException("Invalid token");
+        }
+        
+        String[] parts = cleanToken.split("-");
+        if (parts.length >= 4) {
+            return Long.parseLong(parts[3]);
         }
         
         String tokenIdPart = cleanToken.replace("mock-jwt-token-", "");

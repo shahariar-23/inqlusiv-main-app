@@ -23,6 +23,14 @@ public class EmployeeController {
         if (!cleanToken.startsWith("mock-jwt-token-")) {
             throw new RuntimeException("Invalid mock token");
         }
+        
+        String[] parts = cleanToken.split("-");
+        // Format: mock-jwt-token-{companyId}-{role}-{userId}
+        if (parts.length >= 4) {
+            return Long.parseLong(parts[3]);
+        }
+        
+        // Fallback for old format: mock-jwt-token-{companyId}
         return Long.parseLong(cleanToken.replace("mock-jwt-token-", ""));
     }
 

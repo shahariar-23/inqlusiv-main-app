@@ -20,6 +20,9 @@ public class User {
     @Column(unique = true, nullable = false)
     private String email;
 
+    @Column(name = "full_name")
+    private String fullName;
+
     @Column(nullable = false)
     private String password;
 
@@ -32,4 +35,12 @@ public class User {
 
     @Column(name = "department_id")
     private Long departmentId;
+
+    @Column(name = "is_active")
+    @Builder.Default
+    private Boolean isActive = true;
+
+    @Transient
+    @Builder.Default
+    private Boolean isEditable = true;
 }

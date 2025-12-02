@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './pages/Login/Login';
+import Login from './pages/Auth/Login';
 import SetupWizard from './pages/SetupWizard/SetupWizard';
 import DashboardLayout from './layouts/DashboardLayout';
 import DashboardHome from './pages/Dashboard/DashboardHome';
@@ -11,6 +11,7 @@ import Surveys from './pages/Dashboard/Surveys';
 import SurveyBuilder from './pages/Dashboard/SurveyBuilder';
 import SurveyResults from './pages/Dashboard/SurveyResults';
 import SurveyTaker from './pages/Public/SurveyTaker';
+import UserManagement from './pages/Dashboard/UserManagement';
 
 function App() {
   return (
@@ -26,6 +27,15 @@ function App() {
           element={
             <DashboardLayout>
               <DashboardHome />
+            </DashboardLayout>
+          } 
+        />
+        
+        <Route 
+          path="/dashboard/users" 
+          element={
+            <DashboardLayout>
+              <UserManagement />
             </DashboardLayout>
           } 
         />

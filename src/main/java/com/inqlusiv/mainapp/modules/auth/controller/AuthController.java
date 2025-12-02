@@ -32,11 +32,16 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
-        // 1. Check DB for User
+        // 1. Check Users Table (Employees, Managers, etc.)
         Optional<User> userOpt = userRepository.findByEmail(loginRequest.getEmail());
 
         if (userOpt.isPresent()) {
             User user = userOpt.get();
+            
+            // Check if user is active
+            if (Boolean.FALSE.equals(user.getIsActive())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Your account is inactive. Please contact your administrator.");
+            }
             
             // Check password (support both encoded and plain text for demo)
             boolean passwordMatch = passwordEncoder.matches(loginRequest.getPassword(), user.getPassword()) 
@@ -55,6 +60,29 @@ public class AuthController {
                         user.getCompanyId(), 
                         user.getRole().name(), 
                         user.getId());
+                
+                return ResponseEntity.ok(new LoginResponse(token, setupStatus));
+            }
+        }
+
+        // 2. Check Companies Table (Company Admins who registered directly)
+        Optional<Company> companyOpt = companyRepository.findByEmail(loginRequest.getEmail());
+        if (companyOpt.isPresent()) {
+            Company company = companyOpt.get();
+            
+            // Check password
+            boolean passwordMatch = passwordEncoder.matches(loginRequest.getPassword(), company.getPassword()) 
+                                    || loginRequest.getPassword().equals(company.getPassword());
+
+            if (passwordMatch) {
+                String setupStatus = company.getSetupStatus() != null ? company.getSetupStatus().name() : "INCOMPLETE";
+                
+                // Generate Token for Company Admin
+                // Use 0 as userId placeholder since this is a Company account, not a User entity
+                String token = String.format("mock-jwt-token-%d-%s-%d", 
+                        company.getId(), 
+                        "COMPANY_ADMIN", 
+                        0L);
                 
                 return ResponseEntity.ok(new LoginResponse(token, setupStatus));
             }

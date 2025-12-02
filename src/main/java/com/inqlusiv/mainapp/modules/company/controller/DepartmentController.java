@@ -23,6 +23,13 @@ public class DepartmentController {
         if (!cleanToken.startsWith("mock-jwt-token-")) {
             throw new RuntimeException("Invalid mock token");
         }
+        
+        String[] parts = cleanToken.split("-");
+        // Format: mock-jwt-token-{companyId}-{role}-{userId}
+        if (parts.length >= 4) {
+            return Long.parseLong(parts[3]);
+        }
+        
         return Long.parseLong(cleanToken.replace("mock-jwt-token-", ""));
     }
 
