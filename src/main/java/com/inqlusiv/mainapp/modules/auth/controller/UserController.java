@@ -6,6 +6,8 @@ import com.inqlusiv.mainapp.modules.auth.entity.User;
 import com.inqlusiv.mainapp.modules.auth.repository.UserRepository;
 import com.inqlusiv.mainapp.modules.company.entity.Company;
 import com.inqlusiv.mainapp.modules.company.repository.CompanyRepository;
+import com.inqlusiv.mainapp.modules.company.entity.Department;
+import com.inqlusiv.mainapp.modules.company.repository.DepartmentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +17,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Random;
 
 @RestController
 @RequestMapping("/api/users")
@@ -25,6 +30,9 @@ public class UserController {
 
     @Autowired
     private CompanyRepository companyRepository;
+
+    @Autowired
+    private DepartmentRepository departmentRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -143,13 +151,34 @@ public class UserController {
                 return ResponseEntity.badRequest().body("Manager is not assigned to a department");
             }
 
-            // 4. Fetch Team Members
-            List<User> teamMembers = userRepository.findByDepartmentId(manager.getDepartmentId()).stream()
-                    .filter(u -> !u.getId().equals(userId)) // Exclude self
-                    .peek(u -> u.setPassword(null)) // Hide passwords
-                    .toList();
+            // 4. Get Department Name
+            String departmentName = "Unknown Department";
+            Optional<Department> deptOpt = departmentRepository.findById(manager.getDepartmentId());
+            if (deptOpt.isPresent()) {
+                departmentName = deptOpt.get().getName();
+            }
 
-            return ResponseEntity.ok(teamMembers);
+            // 5. Fetch Team Members and Mock Status
+            List<User> teamMembers = userRepository.findByDepartmentId(manager.getDepartmentId());
+            List<Map<String, Object>> response = new ArrayList<>();
+            Random random = new Random();
+            String[] statuses = {"Completed", "Pending", "Not Started"};
+
+            for (User user : teamMembers) {
+                if (user.getId().equals(userId)) continue; // Exclude self
+
+                Map<String, Object> userMap = new HashMap<>();
+                userMap.put("id", user.getId());
+                userMap.put("fullName", user.getFullName());
+                userMap.put("email", user.getEmail());
+                userMap.put("role", user.getRole());
+                userMap.put("departmentName", departmentName);
+                userMap.put("status", statuses[random.nextInt(statuses.length)]);
+                
+                response.add(userMap);
+            }
+
+            return ResponseEntity.ok(response);
 
         } catch (Exception e) {
             e.printStackTrace();
