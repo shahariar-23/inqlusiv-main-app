@@ -84,10 +84,9 @@ public class SurveyController {
         }
     }
 
-    @PostMapping("/{id}/analyze")
-    public ResponseEntity<?> analyzeSurvey(@PathVariable Long id) {
+    @PostMapping("/analyze")
+    public ResponseEntity<?> analyzeSurvey(@RequestBody SurveyResultDTO results) {
         try {
-            SurveyResultDTO results = surveyService.getSurveyResults(id);
             TextSummaryDTO summary = textAnalysisService.analyzeSurveyResults(results);
             return ResponseEntity.ok(summary);
         } catch (Exception e) {

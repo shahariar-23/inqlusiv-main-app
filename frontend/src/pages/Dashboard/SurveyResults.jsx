@@ -84,7 +84,7 @@ const SurveyResults = () => {
     setAnalyzing(true);
     try {
         const token = localStorage.getItem('token');
-        const response = await axios.post(`http://localhost:8080/api/surveys/${id}/analyze`, {}, {
+        const response = await axios.post('http://localhost:8080/api/surveys/analyze', results, {
             headers: { Authorization: `Bearer ${token}` }
         });
         setAiSummary(response.data);
@@ -122,7 +122,7 @@ const SurveyResults = () => {
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-purple text-white hover:bg-brand-purple/90 transition-colors font-medium shadow-lg shadow-brand-purple/20"
         >
             {analyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            {analyzing ? 'Generating Report...' : 'Generate AI Report'}
+            {analyzing ? 'Generating Report...' : '✨ Analyze Survey with AI'}
         </button>
       </div>
 
@@ -150,9 +150,18 @@ const SurveyResults = () => {
                                 </span>
                             ))}
                         </div>
-                        <p className="text-slate-300 leading-relaxed whitespace-pre-line">
+                        <p className="text-slate-300 leading-relaxed whitespace-pre-line mb-4">
                             {aiSummary.summary}
                         </p>
+                        
+                        {aiSummary.problemExplanation && (
+                            <div className="mb-4 p-4 rounded-lg bg-rose-500/10 border border-rose-500/20">
+                                <h4 className="text-sm font-bold text-rose-300 mb-1">Problem Analysis</h4>
+                                <p className="text-slate-300 text-sm leading-relaxed">
+                                    {aiSummary.problemExplanation}
+                                </p>
+                            </div>
+                        )}
                     </div>
                     
                     {aiSummary.actionableSuggestion && (

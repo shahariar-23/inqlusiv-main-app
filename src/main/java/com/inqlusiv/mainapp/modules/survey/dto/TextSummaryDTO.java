@@ -13,6 +13,7 @@ import java.util.List;
 @AllArgsConstructor
 public class TextSummaryDTO {
     private String summary;
+    private String problemExplanation;
     private List<String> topThemes;
     private String sentimentLabel;
     private String actionableSuggestion;

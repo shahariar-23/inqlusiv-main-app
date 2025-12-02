@@ -59,7 +59,7 @@ public class TextAnalysisService {
         } catch (HttpClientErrorException e) {
             logger.error("OpenRouter API Error: {}", e.getResponseBodyAsString());
             return TextSummaryDTO.builder()
-                    .summary("AI Analysis failed. API Error: " + e.getStatusCode())
+                    .summary("AI Analysis failed. API Error: " + e.getStatusCode() + "\nDetails: " + e.getResponseBodyAsString())
                     .topThemes(Collections.emptyList())
                     .sentimentLabel(NEUTRAL_SENTIMENT)
                     .actionableSuggestion("Check logs for API response.")
@@ -124,6 +124,9 @@ public class TextAnalysisService {
             throw new IllegalStateException("OpenRouter API Key is missing in configuration");
         }
 
+        // Trim key to avoid whitespace issues
+        apiKey = apiKey.trim();
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("Authorization", "Bearer " + apiKey);
@@ -164,7 +167,8 @@ public class TextAnalysisService {
         contentNode.path("topThemes").forEach(node -> themes.add(node.asText()));
 
         return TextSummaryDTO.builder()
-                .summary(shortDescription + "\n\n" + problemExplanation)
+                .summary(shortDescription)
+                .problemExplanation(problemExplanation)
                 .sentimentLabel(sentiment)
                 .topThemes(themes)
                 .actionableSuggestion(actionableSuggestion)
