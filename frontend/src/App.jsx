@@ -13,6 +13,7 @@ import SurveyResults from './pages/Dashboard/SurveyResults';
 import SurveyTaker from './pages/Public/SurveyTaker';
 import UserManagement from './pages/Dashboard/UserManagement';
 import TeamView from './pages/Dashboard/TeamView';
+import Goals from './pages/Dashboard/Goals';
 
 function App() {
   return (
@@ -46,6 +47,15 @@ function App() {
           element={
             <DashboardLayout>
               <TeamView />
+            </DashboardLayout>
+          } 
+        />
+
+        <Route 
+          path="/dashboard/goals" 
+          element={
+            <DashboardLayout>
+              <Goals />
             </DashboardLayout>
           } 
         />
